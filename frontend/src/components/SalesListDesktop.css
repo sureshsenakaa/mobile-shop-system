@@ -1,0 +1,81 @@
+/* Modern, clean styles for SalesListDesktop */
+.sales-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(18, 38, 63, 0.06);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #222;
+}
+.sales-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.sales-title {
+  margin: 0;
+  font-size: 20px;
+  color: #0f1724;
+}
+.sales-subtitle {
+  margin: 6px 0 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-primary { background: linear-gradient(90deg,#2563eb,#1e40af); color:#fff }
+.btn-success { background:#059669; color:#fff }
+.btn-warning { background:#f59e0b; color:#fff }
+.btn-danger { background:#dc2626; color:#fff }
+.btn-sm { padding:6px 10px; border-radius:6px; font-size:13px }
+.search-row { margin-bottom: 18px; }
+.search-input {
+  width: 100%;
+  max-width: 520px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  box-shadow: inset 0 1px 2px rgba(16,24,40,0.03);
+  font-size: 14px;
+}
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.sales-table thead th {
+  text-align: left;
+  padding: 12px 14px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid #eef2f6;
+  background: linear-gradient(180deg,#fff,#fbfdff);
+}
+.sales-row { border-bottom: 1px solid #f1f5f9; transition: background .12s ease; }
+.sales-row:hover { background: #f8fafc }
+.sales-row.highlight { background: linear-gradient(90deg,#fff7ed,#fffdf8) }
+.cell { padding: 12px 14px; vertical-align: middle; color: #334155 }
+.cell-muted { color: #6b7280 }
+.cell-amount { font-weight:700; color:#047857 }
+.actions { display:flex; gap:8px; align-items:center }
+.badge-returned { padding:6px 10px; background:#e6e7ea; color:#374151; border-radius:6px; font-size:13px }
+.empty-row { padding:36px; text-align:center; color:#9ca3af }
+
+@media (max-width: 880px) {
+  .sales-header { flex-direction: column; align-items: flex-start }
+  .sales-title { font-size:18px }
+  .search-input { max-width: 100% }
+  .actions { flex-wrap: wrap }
+}
