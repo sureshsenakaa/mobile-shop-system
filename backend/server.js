@@ -26,6 +26,7 @@ const returnRoutes = require('./routes/returnRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
+app.set('trust proxy', 1); // Trust Nginx reverse proxy headers for rate-limiting
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
