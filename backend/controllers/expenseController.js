@@ -1,66 +1,88 @@
-const mongoose = require('mongoose');
-const { Expense } = require('../models');
-
-const isDbReady = () => mongoose.connection.readyState === 1;
+const { Expense, sequelize } = require('../models');
+const { Op } = require('sequelize');
 
 exports.createExpense = async (req, res) => {
   try {
-    if (!isDbReady()) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
-
-    const expense = new Expense(req.body);
-    await expense.save();
+    const expense = await Expense.create({ ...req.body, shopId: req.shopId });
     res.status(201).json(expense);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-// GET /api/expenses?month=YYYY-MM
 exports.getExpenses = async (req, res) => {
   try {
-    if (!isDbReady()) {
-      return res.json([]);
-    }
-
     const { month } = req.query;
     if (month) {
-      // month is YYYY-MM
       const start = new Date(`${month}-01T00:00:00.000Z`);
       const end = new Date(start);
       end.setMonth(end.getMonth() + 1);
-      const expenses = await Expense.find({ date: { $gte: start, $lt: end } }).sort({ date: 1 });
+      const expenses = await Expense.findAll({
+        where: { date: { [Op.gte]: start, [Op.lt]: end }, shopId: req.shopId },
+        order: [['date', 'ASC']]
+      });
       return res.json(expenses);
     }
-    const expenses = await Expense.find().sort({ date: -1 });
+    const expenses = await Expense.findAll({ 
+      where: { shopId: req.shopId },
+      order: [['date', 'DESC']] 
+    });
     res.json(expenses);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// GET /api/expenses/monthly - aggregate total per category for month (optional month query)
 exports.getMonthlyExpenses = async (req, res) => {
   try {
-    if (!isDbReady()) {
-      return res.json([]);
-    }
-
     const { month } = req.query;
-    const match = {};
+    let where = { shopId: req.shopId };
     if (month) {
       const start = new Date(`${month}-01T00:00:00.000Z`);
       const end = new Date(start);
       end.setMonth(end.getMonth() + 1);
-      match.date = { $gte: start, $lt: end };
+      where.date = { [Op.gte]: start, [Op.lt]: end };
     }
 
-    const agg = await Expense.aggregate([
-      { $match: match },
-      { $group: { _id: "$category", total: { $sum: "$amount" }, count: { $sum: 1 } } }
-    ]);
-    res.json(agg.map(a => ({ category: a._id, total: a.total, count: a.count })));
+    const agg = await Expense.findAll({
+      where,
+      attributes: [
+        'category',
+        [sequelize.fn('SUM', sequelize.col('amount')), 'total'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['category']
+    });
+
+    res.json(agg.map(a => ({
+      category: a.category,
+      total: Number(a.getDataValue('total')),
+      count: Number(a.getDataValue('count'))
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const expense = await Expense.findOne({ where: { id, shopId: req.shopId } });
+    if (!expense) return res.status(404).json({ error: 'Expense not found' });
+    
+    await expense.update(req.body);
+    res.json(expense);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.deleteExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Expense.destroy({ where: { id, shopId: req.shopId } });
+    if (!deleted) return res.status(404).json({ error: 'Expense not found' });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
