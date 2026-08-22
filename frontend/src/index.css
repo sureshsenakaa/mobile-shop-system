@@ -180,9 +180,11 @@ h1, h2, h3, h4, h5, h6 {
 -------------------------------------- */
 .app-container {
   max-width: 1200px;
+  width: 100%;
   margin: 32px auto;
   padding: 0 24px;
   animation: fadeIn 0.5s ease-out;
+  overflow-x: hidden; /* Prevent body horizontal scroll */
 }
 
 @keyframes fadeIn {
@@ -197,6 +199,8 @@ h1, h2, h3, h4, h5, h6 {
   padding: 32px;
   border: 1px solid rgba(255,255,255,0.8);
   transition: var(--transition);
+  max-width: 100%;
+  overflow-x: auto; /* Allow tables inside to scroll if needed */
 }
 
 .card:hover {

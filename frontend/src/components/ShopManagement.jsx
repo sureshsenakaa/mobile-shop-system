@@ -107,7 +107,7 @@ const ShopManagement = () => {
         <div>
             <h2 style={{ color: 'var(--primary)', marginBottom: 20 }}>Shopping Mall - Super Admin Dashboard</h2>
             
-            <div style={{ display: 'flex', gap: 20, marginBottom: 30 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginBottom: 30 }}>
                 <div style={{ flex: 1, background: '#fff', padding: 20, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}>
                     <h3 style={{ color: '#888', margin: 0, fontSize: 14, textTransform: 'uppercase' }}>MRR (This Month)</h3>
                     <p style={{ fontSize: 32, fontWeight: 'bold', margin: '10px 0 0 0', color: '#16a34a' }}>Rs. {stats.mrr?.toLocaleString() || 0}</p>
@@ -189,7 +189,7 @@ const ShopManagement = () => {
                 </div>
             </div>
 
-            <div style={{ background: '#fff', padding: 20, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: '#fff', padding: 20, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
                 <h3>All Shops</h3>
                 {loading ? <p>Loading...</p> : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>

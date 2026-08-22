@@ -35,6 +35,8 @@
     padding: 24px;
     box-shadow: 0 4px 25px rgba(0, 0, 0, 0.03);
     border: 1px solid rgba(0, 0, 0, 0.03);
+    max-width: 100%;
+    overflow-x: auto;
   }
   
   .supplier-search-input {
@@ -46,7 +48,8 @@
     background: #f8fafc;
     transition: all 0.2s ease;
     outline: none;
-    width: 350px;
+    width: 100%;
+    max-width: 350px;
   }
   
   .supplier-search-input:focus {

@@ -218,7 +218,7 @@ const ProductListDesktop = ({ onAddClick }) => {
 
     return (
         <div className="card">
-            <div style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 60, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', boxShadow: '0 1px 0 rgba(0,0,0,0.06)', marginBottom: '12px' }}>
+            <div style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 60, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', boxShadow: '0 1px 0 rgba(0,0,0,0.06)', marginBottom: '12px' }}>
                 <div>
                     <h2 style={{ margin: 0, color: '#333' }}>Current Inventory</h2>
                     <div style={{ color: '#666', fontSize: 13, marginTop: 6 }}>
@@ -226,7 +226,7 @@ const ProductListDesktop = ({ onAddClick }) => {
                         &nbsp;•&nbsp;Retail Value: <strong>Rs. {Number(totalRetailValue).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>
                         &nbsp;•&nbsp;Total Units: <strong>{totalInventoryUnits.toLocaleString()}</strong>
                     </div>
-                    <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                         <div style={{ fontSize: 13, color: '#444', marginRight: 8 }}>View:</div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                             <button onClick={() => { setViewFilter('all'); setAccessoryFilter(''); }} style={{ padding: '6px 10px', borderRadius: 6, border: viewFilter === 'all' ? '1px solid #1976d2' : '1px solid #ddd', background: viewFilter === 'all' ? '#e3f2fd' : '#fff', cursor: 'pointer' }}>All</button>
@@ -251,7 +251,7 @@ const ProductListDesktop = ({ onAddClick }) => {
                                     placeholder="Search brand, model, type or barcode..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ padding: '8px', borderRadius: 6, border: '1px solid #ddd', minWidth: 260 }}
+                                    style={{ padding: '8px', borderRadius: 6, border: '1px solid #ddd', width: '100%', maxWidth: 260 }}
                                 />
                                 <button onClick={() => setSearchTerm('')} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}>Clear</button>
                             </div>
