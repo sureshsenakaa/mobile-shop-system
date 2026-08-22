@@ -201,51 +201,53 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
                 />
             </div>
 
-            <table className="sales-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Product</th>
-                        <th>Customer</th>
-                        <th>Mobile</th>
-                        <th>Qty</th>
-                        <th>Discount</th>
-                        <th>Total</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredSales.map(s => {
-                        const isHighlighted = latestSaleId && s._id === latestSaleId;
-                        return (
-                            <tr key={s._id} className={`sales-row ${isHighlighted ? 'highlight' : ''}`}>
-                                <td className="cell cell-muted">{formatDateString(s.date)}</td>
-                                <td className="cell">{Array.isArray(s.items) ? s.items.map(i => i.productName).slice(0,2).join(', ') : (s.productName || '')}</td>
-                                <td className="cell">{s.customerName || 'Walk-in'}</td>
-                                <td className="cell cell-muted">{s.customerMobile || '-'}</td>
-                                <td className="cell">{Array.isArray(s.items) ? s.items.reduce((sum, it) => sum + (it.quantity || 0), 0) : (s.quantity || '')}</td>
-                                <td className="cell cell-muted">Rs. {s.discount ? Number(s.discount).toFixed(2) : '0.00'}</td>
-                                <td className="cell cell-amount">Rs. {Number(s.total).toFixed(2)}</td>
-                                <td className="cell">
-                                    <div className="actions">
-                                        <button onClick={() => handlePrint(s)} className="btn btn-sm btn-primary">Print</button>
-                                        <button onClick={() => downloadSalePdf(s, productsMap)} className="btn btn-sm btn-success">Download PDF</button>
-                                        {!s.returned ? (
-                                            <button onClick={() => handleReturn(s._id)} className="btn btn-sm btn-warning">Return</button>
-                                        ) : (
-                                            <span className="badge-returned">Returned</span>
-                                        )}
-                                        <button onClick={() => handleDeleteSale(s._id)} className="btn btn-sm btn-danger">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                    {filteredSales.length === 0 && <tr><td colSpan="8" className="empty-row">
-                        {searchTerm ? `No sales found matching "${searchTerm}"` : 'No sales recorded yet.'}
-                    </td></tr>}
-                </tbody>
-            </table>
+            <div style={{ overflowX: 'auto' }}>
+                <table className="sales-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Product</th>
+                            <th>Customer</th>
+                            <th>Mobile</th>
+                            <th>Qty</th>
+                            <th>Discount</th>
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredSales.map(s => {
+                            const isHighlighted = latestSaleId && s._id === latestSaleId;
+                            return (
+                                <tr key={s._id} className={`sales-row ${isHighlighted ? 'highlight' : ''}`}>
+                                    <td className="cell cell-muted">{formatDateString(s.date)}</td>
+                                    <td className="cell">{Array.isArray(s.items) ? s.items.map(i => i.productName).slice(0,2).join(', ') : (s.productName || '')}</td>
+                                    <td className="cell">{s.customerName || 'Walk-in'}</td>
+                                    <td className="cell cell-muted">{s.customerMobile || '-'}</td>
+                                    <td className="cell">{Array.isArray(s.items) ? s.items.reduce((sum, it) => sum + (it.quantity || 0), 0) : (s.quantity || '')}</td>
+                                    <td className="cell cell-muted">Rs. {s.discount ? Number(s.discount).toFixed(2) : '0.00'}</td>
+                                    <td className="cell cell-amount">Rs. {Number(s.total).toFixed(2)}</td>
+                                    <td className="cell">
+                                        <div className="actions">
+                                            <button onClick={() => handlePrint(s)} className="btn btn-sm btn-primary">Print</button>
+                                            <button onClick={() => downloadSalePdf(s, productsMap)} className="btn btn-sm btn-success">Download PDF</button>
+                                            {!s.returned ? (
+                                                <button onClick={() => handleReturn(s._id)} className="btn btn-sm btn-warning">Return</button>
+                                            ) : (
+                                                <span className="badge-returned">Returned</span>
+                                            )}
+                                            <button onClick={() => handleDeleteSale(s._id)} className="btn btn-sm btn-danger">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        {filteredSales.length === 0 && <tr><td colSpan="8" className="empty-row">
+                            {searchTerm ? `No sales found matching "${searchTerm}"` : 'No sales recorded yet.'}
+                        </td></tr>}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

@@ -126,47 +126,49 @@ const InvestorsDesktop = () => {
           <p className="muted">Total Monthly Pay: <strong>Rs. {totalMonthlyPay.toFixed(2)}</strong></p>
 
           {loading ? <p>Loading...</p> : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Amount</th>
-                  <th>Rate (%)</th>
-                  <th>Monthly Pay</th>
-                  <th>Next Payment</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {investors.map(inv => (
-                  <tr key={inv._id}>
-                    <td>{inv.name}</td>
-                    <td>Rs. {Number(inv.amountInvested).toFixed(2)}</td>
-                    <td>{Number(inv.monthlyRate).toFixed(2)}</td>
-                    <td>Rs. {Number(inv.monthlyPayment || (inv.amountInvested * (inv.monthlyRate||0)/100)).toFixed(2)}</td>
-                    <td>{new Date(inv.nextPaymentDate).toLocaleDateString()}</td>
-                    <td style={{ display: 'flex', gap: 8 }}>
-                      <button className="btn btn-ghost" onClick={() => handleDelete(inv._id)}>Delete</button>
-                      <button className="btn btn-primary" onClick={async () => {
-                        if (!window.confirm(`Mark payment to ${inv.name} as paid?`)) return;
-                        try {
-                          const r = await recordInvestorPayment(inv._id);
-                          if (r && r.success) {
-                            alert('Payment recorded');
-                            await load();
-                          } else {
-                            alert('Failed to record payment: ' + (r && r.error ? r.error : 'unknown'));
-                          }
-                        } catch (e) {
-                          console.error(e);
-                          alert('Failed to record payment');
-                        }
-                      }}>Mark Paid</button>
-                    </td>
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Rate (%)</th>
+                    <th>Monthly Pay</th>
+                    <th>Next Payment</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {investors.map(inv => (
+                    <tr key={inv._id}>
+                      <td>{inv.name}</td>
+                      <td>Rs. {Number(inv.amountInvested).toFixed(2)}</td>
+                      <td>{Number(inv.monthlyRate).toFixed(2)}</td>
+                      <td>Rs. {Number(inv.monthlyPayment || (inv.amountInvested * (inv.monthlyRate||0)/100)).toFixed(2)}</td>
+                      <td>{new Date(inv.nextPaymentDate).toLocaleDateString()}</td>
+                      <td style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn btn-ghost" onClick={() => handleDelete(inv._id)}>Delete</button>
+                        <button className="btn btn-primary" onClick={async () => {
+                          if (!window.confirm(`Mark payment to ${inv.name} as paid?`)) return;
+                          try {
+                            const r = await recordInvestorPayment(inv._id);
+                            if (r && r.success) {
+                              alert('Payment recorded');
+                              await load();
+                            } else {
+                              alert('Failed to record payment: ' + (r && r.error ? r.error : 'unknown'));
+                            }
+                          } catch (e) {
+                            console.error(e);
+                            alert('Failed to record payment');
+                          }
+                        }}>Mark Paid</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

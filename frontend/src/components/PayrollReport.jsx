@@ -85,54 +85,56 @@ const PayrollReport = () => {
             </div>
 
             {loading ? <p>Loading payroll data...</p> : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
-                    <thead>
-                        <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Staff Member</th>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Role</th>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Basic Salary</th>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Sales Comm.</th>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Repair Comm.</th>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Total Earnings</th>
-                            <th style={{ padding: 12, borderBottom: '2px solid #ddd', textAlign: 'center' }}>Status / Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {payroll.map(user => (
-                            <tr key={user.userId}>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee', fontWeight: 'bold' }}>{user.username}</td>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>
-                                    <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 12, fontSize: 11 }}>{user.role}</span>
-                                </td>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>Rs. {Number(user.basicSalary || 0).toFixed(2)}</td>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>Rs. {Number(user.totalSalesCommission).toFixed(2)}</td>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>Rs. {Number(user.totalRepairCommission).toFixed(2)}</td>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee', fontWeight: 'bold', color: '#2e7d32' }}>Rs. {Number(user.totalCommission).toFixed(2)}</td>
-                                <td style={{ padding: 12, borderBottom: '1px solid #eee', textAlign: 'center' }}>
-                                    {user.isPaid ? (
-                                        <span style={{ 
-                                            background: '#dcfce7', color: '#166534', padding: '4px 10px', 
-                                            borderRadius: 12, fontSize: 12, fontWeight: 'bold' 
-                                        }}>
-                                            ✅ Paid (Rs. {Number(user.paidAmount).toFixed(2)})
-                                        </span>
-                                    ) : user.totalCommission > 0 ? (
-                                        <button 
-                                            onClick={() => handlePay(user)} 
-                                            className="btn btn-sm btn-outline"
-                                            style={{ borderColor: '#0ea5e9', color: '#0ea5e9', padding: '4px 10px' }}
-                                        >
-                                            💸 Pay Salary
-                                        </button>
-                                    ) : (
-                                        <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>
-                                    )}
-                                </td>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
+                        <thead>
+                            <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Staff Member</th>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Role</th>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Basic Salary</th>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Sales Comm.</th>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Repair Comm.</th>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd' }}>Total Earnings</th>
+                                <th style={{ padding: 12, borderBottom: '2px solid #ddd', textAlign: 'center' }}>Status / Action</th>
                             </tr>
-                        ))}
-                        {payroll.length === 0 && <tr><td colSpan="7" style={{ padding: 20, textAlign: 'center', color: '#888' }}>No data for selected month.</td></tr>}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {payroll.map(user => (
+                                <tr key={user.userId}>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee', fontWeight: 'bold' }}>{user.username}</td>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>
+                                        <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 12, fontSize: 11 }}>{user.role}</span>
+                                    </td>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>Rs. {Number(user.basicSalary || 0).toFixed(2)}</td>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>Rs. {Number(user.totalSalesCommission).toFixed(2)}</td>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>Rs. {Number(user.totalRepairCommission).toFixed(2)}</td>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee', fontWeight: 'bold', color: '#2e7d32' }}>Rs. {Number(user.totalCommission).toFixed(2)}</td>
+                                    <td style={{ padding: 12, borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                                        {user.isPaid ? (
+                                            <span style={{ 
+                                                background: '#dcfce7', color: '#166534', padding: '4px 10px', 
+                                                borderRadius: 12, fontSize: 12, fontWeight: 'bold' 
+                                            }}>
+                                                ✅ Paid (Rs. {Number(user.paidAmount).toFixed(2)})
+                                            </span>
+                                        ) : user.totalCommission > 0 ? (
+                                            <button 
+                                                onClick={() => handlePay(user)} 
+                                                className="btn btn-sm btn-outline"
+                                                style={{ borderColor: '#0ea5e9', color: '#0ea5e9', padding: '4px 10px' }}
+                                            >
+                                                💸 Pay Salary
+                                            </button>
+                                        ) : (
+                                            <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                            {payroll.length === 0 && <tr><td colSpan="7" style={{ padding: 20, textAlign: 'center', color: '#888' }}>No data for selected month.</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );
