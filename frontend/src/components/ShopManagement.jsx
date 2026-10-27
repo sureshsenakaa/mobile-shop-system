@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getShops, createShop, updateShop, createShopAdmin } from '../api/shopApi';
+import { getShops, createShop, updateShop, createShopAdmin, deleteShop } from '../api/shopApi';
 import { getRevenueStats, getGlobalNotice, updateGlobalNotice } from '../api/adminApi';
 
 const ShopManagement = () => {
@@ -18,6 +18,11 @@ const ShopManagement = () => {
     // Dashboard Stats
     const [stats, setStats] = useState({ totalRevenue: 0, mrr: 0 });
     const [noticeText, setNoticeText] = useState('');
+
+    // Inline Rename
+    const [editingShopId, setEditingShopId] = useState(null);
+    const [editName, setEditName] = useState('');
+    const [editOwner, setEditOwner] = useState('');
 
     const loadShops = async () => {
         setLoading(true);
@@ -94,6 +99,50 @@ const ShopManagement = () => {
         try {
             await updateGlobalNotice(noticeText);
             alert('Broadcast message updated successfully!');
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    const startEditing = (shop) => {
+        setEditingShopId(shop.id);
+        setEditName(shop.name);
+        setEditOwner(shop.ownerName || '');
+    };
+
+    const cancelEditing = () => {
+        setEditingShopId(null);
+        setEditName('');
+        setEditOwner('');
+    };
+
+    const handleRenameShop = async (shopId) => {
+        if (!editName.trim()) return alert('Shop name cannot be empty');
+        try {
+            await updateShop(shopId, { name: editName.trim(), ownerName: editOwner.trim() });
+            cancelEditing();
+            loadShops();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    const handleDeleteShop = async (shop) => {
+        const confirmText = prompt(
+            `⚠️ WARNING: This will permanently delete "${shop.name}" and ALL its data including:\n` +
+            `- All Products, Sales, Repairs\n` +
+            `- All Customers, Suppliers, Expenses\n` +
+            `- All Staff Accounts\n\n` +
+            `Type the shop name "${shop.name}" to confirm deletion:`
+        );
+        if (confirmText !== shop.name) {
+            if (confirmText !== null) alert('Shop name did not match. Deletion cancelled.');
+            return;
+        }
+        try {
+            await deleteShop(shop.id);
+            alert(`"${shop.name}" and all related data deleted successfully.`);
+            loadShops();
         } catch (err) {
             alert(err.message);
         }
@@ -208,8 +257,30 @@ const ShopManagement = () => {
                             {shops.map(shop => (
                                 <tr key={shop.id}>
                                     <td style={{ padding: 10, borderBottom: '1px solid #eee' }}>{shop.id}</td>
-                                    <td style={{ padding: 10, borderBottom: '1px solid #eee', fontWeight: 'bold' }}>{shop.name}</td>
-                                    <td style={{ padding: 10, borderBottom: '1px solid #eee' }}>{shop.ownerName || '-'}</td>
+                                    <td style={{ padding: 10, borderBottom: '1px solid #eee', fontWeight: 'bold' }}>
+                                        {editingShopId === shop.id ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                                <input 
+                                                    value={editName} 
+                                                    onChange={e => setEditName(e.target.value)} 
+                                                    style={{ padding: 6, border: '2px solid var(--primary)', borderRadius: 4, fontWeight: 'bold' }}
+                                                    autoFocus
+                                                    placeholder="Shop Name"
+                                                />
+                                                <input 
+                                                    value={editOwner} 
+                                                    onChange={e => setEditOwner(e.target.value)} 
+                                                    style={{ padding: 6, border: '1px solid #ddd', borderRadius: 4, fontSize: 12 }}
+                                                    placeholder="Owner Name"
+                                                />
+                                            </div>
+                                        ) : shop.name}
+                                    </td>
+                                    <td style={{ padding: 10, borderBottom: '1px solid #eee' }}>
+                                        {editingShopId === shop.id ? (
+                                            <span style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>editing...</span>
+                                        ) : (shop.ownerName || '-')}
+                                    </td>
                                     <td style={{ padding: 10, borderBottom: '1px solid #eee', fontSize: 12, color: '#666' }}>
                                         {shop.lastActive ? new Date(shop.lastActive).toLocaleString() : 'Never'}
                                     </td>
@@ -238,20 +309,57 @@ const ShopManagement = () => {
                                         </span>
                                     </td>
                                     <td style={{ padding: 10, borderBottom: '1px solid #eee' }}>
-                                        <button 
-                                            className="btn btn-ghost" 
-                                            onClick={() => toggleStatus(shop)}
-                                            style={{ color: shop.isActive ? '#c62828' : '#2e7d32', marginRight: 10, padding: '4px 8px', fontSize: 12 }}
-                                        >
-                                            {shop.isActive ? 'Disable' : 'Enable'}
-                                        </button>
-                                        <button 
-                                            className="btn btn-ghost" 
-                                            onClick={() => toggleBilling(shop)}
-                                            style={{ color: shop.billingStatus === 'overdue' ? '#2e7d32' : '#c62828', padding: '4px 8px', fontSize: 12 }}
-                                        >
-                                            {shop.billingStatus === 'overdue' ? 'Mark Paid' : 'Mark Overdue'}
-                                        </button>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                                            {editingShopId === shop.id ? (
+                                                <>
+                                                    <button 
+                                                        className="btn btn-ghost" 
+                                                        onClick={() => handleRenameShop(shop.id)}
+                                                        style={{ color: '#2e7d32', padding: '4px 8px', fontSize: 12, background: '#e8f5e9', borderRadius: 6 }}
+                                                    >
+                                                        ✓ Save
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-ghost" 
+                                                        onClick={cancelEditing}
+                                                        style={{ color: '#666', padding: '4px 8px', fontSize: 12 }}
+                                                    >
+                                                        ✕ Cancel
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button 
+                                                        className="btn btn-ghost" 
+                                                        onClick={() => startEditing(shop)}
+                                                        style={{ color: 'var(--primary)', padding: '4px 8px', fontSize: 12 }}
+                                                    >
+                                                        ✏️ Rename
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-ghost" 
+                                                        onClick={() => toggleStatus(shop)}
+                                                        style={{ color: shop.isActive ? '#c62828' : '#2e7d32', padding: '4px 8px', fontSize: 12 }}
+                                                    >
+                                                        {shop.isActive ? 'Disable' : 'Enable'}
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-ghost" 
+                                                        onClick={() => toggleBilling(shop)}
+                                                        style={{ color: shop.billingStatus === 'overdue' ? '#2e7d32' : '#c62828', padding: '4px 8px', fontSize: 12 }}
+                                                    >
+                                                        {shop.billingStatus === 'overdue' ? 'Mark Paid' : 'Mark Overdue'}
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-ghost" 
+                                                        onClick={() => handleDeleteShop(shop)}
+                                                        style={{ color: '#fff', backgroundColor: '#dc2626', padding: '4px 8px', fontSize: 12, borderRadius: 6 }}
+                                                    >
+                                                        🗑️ Delete
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

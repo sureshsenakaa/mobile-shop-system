@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Repair, Shop } = require('../models');
+const { Repair, Shop, sequelize } = require('../models');
 
 // GET /api/public/repair/:repairId
 // Fetch repair status without authentication
@@ -8,41 +8,39 @@ router.get('/repair/:repairId', async (req, res) => {
   try {
     const { repairId } = req.params;
 
-    // Use a transaction/bypass RLS here because this is public and we don't have app.current_shop_id set for anonymous requests.
-    // Wait, the RLS policy might block us if we don't set app.current_shop_id. 
-    // We can use a direct sequelize query with the superadmin bypass (0) or create a special DB view.
-    // Actually, setting app.current_shop_id to '0' for this request is the easiest way.
-    
-    // Instead of raw queries, we can set the shopId manually using a transaction or namespace?
-    // In server.js, RLS is set via middleware for authenticated users. For this route, we will bypass it.
-    
-    // Simplest way to bypass RLS is just to find it (assuming the middleware isn't blocking if not logged in).
-    // Let's assume the auth middleware isn't applied to /api/public. But RLS requires app.current_shop_id!
-    // We can execute a raw query or just use sequelize.query setting it.
-    
-    const repair = await Repair.findOne({ 
-      where: { repairId: repairId },
-      include: [{ model: Shop, attributes: ['name', 'phone', 'address', 'logoUrl', 'themeColor'] }]
+    // Bypass RLS by setting app.current_shop_id = '0' (super admin level)
+    // This is safe because we only return limited, non-sensitive fields
+    const result = await sequelize.transaction(async (t) => {
+      await sequelize.query(
+        `SET LOCAL app.current_shop_id = '0'`,
+        { transaction: t }
+      );
+
+      return await Repair.findOne({
+        where: { repairId: repairId },
+        include: [{ model: Shop, attributes: ['name', 'phone', 'address', 'logoUrl', 'themeColor'] }],
+        transaction: t
+      });
     });
 
-    if (!repair) {
-      return res.status(404).json({ error: 'Repair not found' });
+    if (!result) {
+      return res.status(404).json({ message: 'Ticket not found' });
     }
 
     res.json({
-      repairId: repair.repairId,
-      status: repair.status,
-      device: repair.device,
-      brand: repair.brand,
-      issue: repair.issue,
-      dueDate: repair.dueDate,
-      estimatedCost: repair.estimatedCost,
-      shop: repair.Shop
+      repairId: result.repairId,
+      status: result.status,
+      device: result.device,
+      brand: result.brand,
+      issue: result.issue,
+      cost: result.cost,
+      dueDate: result.dueDate,
+      shop: result.Shop
     });
 
   } catch (error) {
     console.error('Error fetching public repair info:', error);
-    res.status(500).json({ error: 'Failed to fetch repair info' });
+    res.status(500).json({ message: 'Failed to fetch repair info' });
   }
 });
 

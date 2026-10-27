@@ -64,6 +64,39 @@ exports.createShopAdmin = async (req, res) => {
   }
 };
 
+exports.deleteShop = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const shop = await Shop.findByPk(id);
+    if (!shop) return res.status(404).json({ error: 'Shop not found' });
+
+    // Delete all related data for this shop
+    const { Customer, Product, Part, Sale, SaleItem, Repair, Supplier, Expense, Investor, AuditLog, PurchaseOrder, Return, SubscriptionPayment, CashRegister, Quotation } = require('../models');
+    
+    await SaleItem.destroy({ where: { shopId: id } });
+    await Sale.destroy({ where: { shopId: id } });
+    await Repair.destroy({ where: { shopId: id } });
+    await Product.destroy({ where: { shopId: id } });
+    await Part.destroy({ where: { shopId: id } });
+    await Customer.destroy({ where: { shopId: id } });
+    await Supplier.destroy({ where: { shopId: id } });
+    await Expense.destroy({ where: { shopId: id } });
+    await Investor.destroy({ where: { shopId: id } });
+    await AuditLog.destroy({ where: { shopId: id } });
+    await PurchaseOrder.destroy({ where: { shopId: id } });
+    await Return.destroy({ where: { shopId: id } });
+    await SubscriptionPayment.destroy({ where: { shopId: id } });
+    await CashRegister.destroy({ where: { shopId: id } });
+    await Quotation.destroy({ where: { shopId: id } });
+    await User.destroy({ where: { shopId: id } });
+    await shop.destroy();
+
+    res.json({ message: 'Shop and all related data deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getNotice = async (req, res) => {
   try {
     const notice = await GlobalNotice.findOne();

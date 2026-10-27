@@ -13,5 +13,6 @@ router.post('/', shopController.createShop);
 router.get('/', shopController.getShops);
 router.put('/:id', shopController.updateShop);
 router.post('/:id/admin', shopController.createShopAdmin);
+router.delete('/:id', shopController.deleteShop);
 
 module.exports = router;

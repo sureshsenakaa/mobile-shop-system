@@ -8,6 +8,15 @@ const RepairListDesktop = ({ onAddClick, onManageParts }) => {
     const [parts, setParts] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [editFormData, setEditFormData] = useState({});
+    const [copiedId, setCopiedId] = useState(null);
+
+    const handleCopyTrackLink = (repairId) => {
+        const url = `${window.location.origin}/tracking?ticket=${repairId}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopiedId(repairId);
+            setTimeout(() => setCopiedId(null), 2000);
+        });
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -229,7 +238,9 @@ const RepairListDesktop = ({ onAddClick, onManageParts }) => {
                                             <button onClick={() => handleEditClick(r)} style={{ marginRight: '5px', marginBottom: '5px', padding: '5px 10px', backgroundColor: '#2196f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Edit</button>
                                             <button onClick={() => handleDelete(r._id)} style={{ padding: '5px 10px', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Delete</button>
                                             <div style={{ marginTop: '5px' }}>
-                                                <a href={`/tracking?ticket=${r.repairId || r._id}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#673ab7', textDecoration: 'none', fontWeight: 'bold' }}>🔗 Track Link</a>
+                                                <span onClick={() => handleCopyTrackLink(r.repairId || r._id)} style={{ fontSize: '11px', color: copiedId === (r.repairId || r._id) ? '#4caf50' : '#673ab7', cursor: 'pointer', fontWeight: 'bold' }}>
+                                                    {copiedId === (r.repairId || r._id) ? '✅ Link Copied!' : '🔗 Copy Track Link'}
+                                                </span>
                                             </div>
                                         </td>
                                     </>

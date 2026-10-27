@@ -34,6 +34,14 @@ export const createShopAdmin = async (shopId, userData) => {
     return parseJsonResponse(res);
 };
 
+export const deleteShop = async (id) => {
+    const res = await fetch(apiUrl(`/shops/${id}`), {
+        method: 'DELETE',
+        headers: { ...getAuthHeader() }
+    });
+    return parseJsonResponse(res);
+};
+
 export const getShopNotice = async () => {
     const res = await fetch(apiUrl('/shops/notice'), { headers: { ...getAuthHeader() } });
     return parseJsonResponse(res);
