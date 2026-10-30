@@ -54,6 +54,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateAuthUser = (updates) => {
+        setAuthUser(prev => {
+            const updated = { ...prev, ...updates };
+            try {
+                localStorage.setItem('user', JSON.stringify(updated));
+            } catch (e) {
+                console.error("Error saving updated user to localStorage", e);
+            }
+            if (updated.themeColor) {
+                document.documentElement.style.setProperty('--primary', updated.themeColor);
+            }
+            return updated;
+        });
+    };
+
     const logout = () => {
         authApiLogout();
         setAuthUser(null);
@@ -61,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ authUser, login, logout, loading }}>
+        <AuthContext.Provider value={{ authUser, login, logout, loading, updateAuthUser }}>
             {children}
         </AuthContext.Provider>
     );

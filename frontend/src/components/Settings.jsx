@@ -1,23 +1,51 @@
-import React, { useState } from 'react';
-import { apiUrl } from '../api/config';
+import React, { useState, useEffect, useContext } from 'react';
+import { apiUrl, API_BASE_URL } from '../api/config';
 import { generate2FA, enable2FA } from '../api/authApi';
+import { AuthContext } from '../contexts/AuthContext';
 
 const Settings = ({ user }) => {
+    const { updateAuthUser } = useContext(AuthContext) || {};
+
     // Password Change State
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     
-    // Shop Branding State (Only for Shop Admins)
-    const [themeColor, setThemeColor] = useState('#3b82f6');
-    const [printLogo, setPrintLogo] = useState(false);
+    // Shop Profile & Branding State (Only for Shop Admins)
+    const [shopName, setShopName] = useState(user?.shopName || '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const [address, setAddress] = useState(user?.address || '');
+    const [themeColor, setThemeColor] = useState(user?.themeColor || '#3b82f6');
+    const [printLogo, setPrintLogo] = useState(user?.printLogo || false);
+    const [currentLogoUrl, setCurrentLogoUrl] = useState(user?.logoUrl || null);
     const [logoFile, setLogoFile] = useState(null);
+    const [savingBranding, setSavingBranding] = useState(false);
 
     // 2FA State
     const [qrCode, setQrCode] = useState(null);
     const [twoFaSecret, setTwoFaSecret] = useState(null);
     const [twoFaPin, setTwoFaPin] = useState('');
-    const [is2FAEnabled, setIs2FAEnabled] = useState(user.twoFactorEnabled || false);
+    const [is2FAEnabled, setIs2FAEnabled] = useState(user?.twoFactorEnabled || false);
+
+    useEffect(() => {
+        if (user && user.role === 'shop_admin') {
+            fetch(apiUrl('/settings/branding'), {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    if (data.name) setShopName(data.name);
+                    if (data.phone) setPhone(data.phone);
+                    if (data.address) setAddress(data.address);
+                    if (data.themeColor) setThemeColor(data.themeColor);
+                    if (data.printLogo !== undefined) setPrintLogo(data.printLogo);
+                    if (data.logoUrl) setCurrentLogoUrl(data.logoUrl);
+                }
+            })
+            .catch(err => console.warn('Could not load shop branding', err));
+        }
+    }, [user]);
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
@@ -46,8 +74,12 @@ const Settings = ({ user }) => {
 
     const handleBrandingUpdate = async (e) => {
         e.preventDefault();
+        setSavingBranding(true);
         try {
             const formData = new FormData();
+            formData.append('name', shopName);
+            formData.append('phone', phone);
+            formData.append('address', address);
             formData.append('themeColor', themeColor);
             formData.append('printLogo', printLogo);
             if (logoFile) {
@@ -64,9 +96,26 @@ const Settings = ({ user }) => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Error updating branding');
             
-            alert('Shop branding updated successfully! Please refresh to see changes.');
+            if (data.shop) {
+                if (data.shop.logoUrl) setCurrentLogoUrl(data.shop.logoUrl);
+                setLogoFile(null);
+                if (updateAuthUser) {
+                    updateAuthUser({
+                        shopName: data.shop.name,
+                        phone: data.shop.phone,
+                        address: data.shop.address,
+                        themeColor: data.shop.themeColor,
+                        logoUrl: data.shop.logoUrl,
+                        printLogo: data.shop.printLogo
+                    });
+                }
+            }
+
+            alert('Shop profile and invoice branding updated successfully!');
         } catch (err) {
             alert(err.message);
+        } finally {
+            setSavingBranding(false);
         }
     };
 
@@ -95,9 +144,125 @@ const Settings = ({ user }) => {
         }
     };
 
+    const resolvedLogoSrc = currentLogoUrl 
+        ? (currentLogoUrl.startsWith('http') || currentLogoUrl.startsWith('data:') 
+            ? currentLogoUrl 
+            : `${API_BASE_URL.replace('/api', '')}${currentLogoUrl.startsWith('/') ? '' : '/'}${currentLogoUrl}`)
+        : null;
+
     return (
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <h2 style={{ color: 'var(--primary)', marginBottom: 20 }}>Settings</h2>
+
+            {user && user.role === 'shop_admin' && (
+                <div className="card" style={{ marginBottom: 30 }}>
+                    <h3 style={{ marginBottom: 10 }}>Shop Details & Invoice Branding</h3>
+                    <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>
+                        Configure your shop name, contact details, and invoice/receipt logo. These will appear on all bills and invoices.
+                    </p>
+                    <form onSubmit={handleBrandingUpdate}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 15, marginBottom: 15 }}>
+                            <div>
+                                <label className="form-label">Shop Name (Displayed on Bills & Invoices)</label>
+                                <input 
+                                    type="text" 
+                                    value={shopName} 
+                                    onChange={e => setShopName(e.target.value)} 
+                                    required 
+                                    className="input" 
+                                    placeholder="e.g. My Phone Shop" 
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label">Contact Phone Number</label>
+                                <input 
+                                    type="text" 
+                                    value={phone} 
+                                    onChange={e => setPhone(e.target.value)} 
+                                    className="input" 
+                                    placeholder="e.g. 077 123 4567" 
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: 15 }}>
+                            <label className="form-label">Shop Address</label>
+                            <input 
+                                type="text" 
+                                value={address} 
+                                onChange={e => setAddress(e.target.value)} 
+                                className="input" 
+                                placeholder="e.g. 123 Main Street, Colombo" 
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: 20 }}>
+                            <label className="form-label">Theme Color</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <input 
+                                    type="color" 
+                                    value={themeColor} 
+                                    onChange={e => setThemeColor(e.target.value)} 
+                                    style={{ padding: 4, height: 40, width: 60, borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer' }} 
+                                />
+                                <span style={{ fontSize: 13, color: '#666' }}>{themeColor}</span>
+                            </div>
+                        </div>
+                        
+                        <div style={{ marginBottom: 20, padding: 20, background: 'rgba(0,0,0,0.02)', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)' }}>
+                            <h4 style={{ margin: '0 0 10px 0' }}>Shop Logo for Invoices & Receipts</h4>
+                            
+                            {resolvedLogoSrc && (
+                                <div style={{ marginBottom: 15, display: 'flex', alignItems: 'center', gap: 15 }}>
+                                    <div style={{ background: '#fff', padding: 8, border: '1px solid #ddd', borderRadius: 8, display: 'inline-block' }}>
+                                        <img 
+                                            src={resolvedLogoSrc} 
+                                            alt="Shop Logo" 
+                                            style={{ maxHeight: 70, maxWidth: 140, objectFit: 'contain', display: 'block' }} 
+                                        />
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#555' }}>
+                                        Current Shop Logo
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ marginBottom: 15 }}>
+                                <label className="form-label">{resolvedLogoSrc ? 'Change Shop Logo (PNG, JPG)' : 'Upload Shop Logo (PNG, JPG)'}</label>
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={e => setLogoFile(e.target.files[0] || null)} 
+                                    className="input" 
+                                    style={{ padding: '8px' }} 
+                                />
+                                <p className="small-muted" style={{ margin: '4px 0 0 0' }}>
+                                    Your logo will be rendered crisply at the top of all PDF invoices.
+                                </p>
+                            </div>
+
+                            <div style={{ marginTop: 15 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 600 }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={printLogo} 
+                                        onChange={e => setPrintLogo(e.target.checked)} 
+                                        style={{ width: 18, height: 18 }} 
+                                    />
+                                    <span>Print Logo on Thermal Receipts as well</span>
+                                </label>
+                                <p className="small-muted" style={{ margin: '5px 0 0 28px' }}>
+                                    Uncheck if you use a 58mm POS thermal printer that has trouble printing images clearly. (PDF invoices will always include the logo).
+                                </p>
+                            </div>
+                        </div>
+
+                        <button type="submit" disabled={savingBranding} className="btn btn-primary">
+                            {savingBranding ? 'Saving...' : 'Save Shop Settings & Branding'}
+                        </button>
+                    </form>
+                </div>
+            )}
 
             <div className="card" style={{ marginBottom: 30 }}>
                 <h3 style={{ marginBottom: 20 }}>Change Password</h3>
@@ -150,43 +315,6 @@ const Settings = ({ user }) => {
                 )}
             </div>
 
-            {user && user.role === 'shop_admin' && (
-                <div className="card">
-                    <h3 style={{ marginBottom: 10 }}>Shop Branding</h3>
-                    <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>
-                        Configure how your shop appears and customize your thermal receipts.
-                    </p>
-                    <form onSubmit={handleBrandingUpdate}>
-                        <div style={{ marginBottom: 20 }}>
-                            <label className="form-label">Theme Color</label>
-                            <input type="color" value={themeColor} onChange={e => setThemeColor(e.target.value)} style={{ padding: 4, height: 40, width: 60, borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer' }} />
-                        </div>
-                        
-                        <div style={{ marginBottom: 20, padding: 20, background: 'rgba(0,0,0,0.02)', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)' }}>
-                            <h4 style={{ margin: '0 0 10px 0' }}>Receipt Printer Settings</h4>
-                            <div style={{ marginBottom: 10 }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 600 }}>
-                                    <input type="checkbox" checked={printLogo} onChange={e => setPrintLogo(e.target.checked)} style={{ width: 18, height: 18 }} />
-                                    <span>Print Logo on Receipts</span>
-                                </label>
-                                <p className="small-muted" style={{ margin: '5px 0 0 28px' }}>
-                                    If disabled, receipts will be "Text Only" (Recommended for blurry printers).
-                                </p>
-                            </div>
-                            
-                            {printLogo && (
-                                <div style={{ marginTop: 20 }}>
-                                    <label className="form-label">Upload Logo (Auto-converted to B&W)</label>
-                                    <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="input" style={{ padding: '8px' }} />
-                                </div>
-                            )}
-                        </div>
-
-                        <button type="submit" className="btn btn-primary">Save Branding</button>
-                    </form>
-                </div>
-            )}
-            
             {user && user.role !== 'super_admin' && (
                 <div className="card" style={{ marginTop: 30 }}>
                     <h3 style={{ marginBottom: 10 }}>Local Barcode Printer</h3>
@@ -204,7 +332,7 @@ const Settings = ({ user }) => {
                         </div>
                         <div style={{ minWidth: 200, flex: 1 }}>
                             <label className="form-label">Shop Name on Barcode</label>
-                            <input type="text" defaultValue={localStorage.getItem('barcodeShopName') !== null ? localStorage.getItem('barcodeShopName') : (user?.shopName || '')} id="localBarcodeShopName" className="input" placeholder="Shop Name" />
+                            <input type="text" defaultValue={localStorage.getItem('barcodeShopName') !== null ? localStorage.getItem('barcodeShopName') : (shopName || user?.shopName || '')} id="localBarcodeShopName" className="input" placeholder="Shop Name" />
                         </div>
                     </div>
                     <div style={{ marginBottom: 20 }}>

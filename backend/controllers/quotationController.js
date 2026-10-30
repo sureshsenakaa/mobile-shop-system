@@ -1,4 +1,4 @@
-const { Quotation, Sale, SaleItem, Product, Expense, Supplier, Customer, sequelize } = require('../models');
+const { Quotation, Sale, SaleItem, Product, Expense, Supplier, Customer, Shop, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 exports.createQuotation = async (req, res) => {
@@ -39,6 +39,7 @@ exports.getQuotations = async (req, res) => {
 
     const quotations = await Quotation.findAll({
       where,
+      include: [{ model: Shop, attributes: ['id', 'name', 'phone', 'address', 'logoUrl', 'printLogo'] }],
       order: [['dateCreated', 'DESC']]
     });
 
@@ -215,10 +216,13 @@ exports.convertToSale = async (req, res) => {
       convertedSaleId: sale.id
     }, { transaction });
 
-    // Fetch complete sale with items
+    // Fetch complete sale with items and shop
     const completeSale = await Sale.findOne({
       where: { id: sale.id, shopId: req.shopId },
-      include: ['items']
+      include: [
+        'items',
+        { model: Shop, attributes: ['id', 'name', 'phone', 'address', 'logoUrl', 'printLogo'] }
+      ]
     });
 
     res.status(201).json({ sale: completeSale, quotation });

@@ -169,14 +169,37 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
                 const sale = { ...saleData, ...saved };
                 const rows = (sale.items || []).map(it => `<tr><td>${it.productName}</td><td style="text-align:right;">${it.quantity}</td><td style="text-align:right;">Rs. ${Number(it.price).toFixed(2)}</td><td style="text-align:right;">Rs. ${Number(it.subtotal).toFixed(2)}</td></tr>`).join('');
                 
-                const logoHtml = authUser && authUser.printLogo && authUser.logoUrl 
-                    ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${API_BASE_URL.replace('/api', '')}${authUser.logoUrl}" style="max-width: 200px;" /></div>` 
+                let userFromStorage = null;
+                try {
+                    userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
+                } catch (e) {}
+                const activeShop = (saved && (saved.Shop || saved.shop)) || authUser || userFromStorage || {};
+                const shopName = activeShop.shopName || activeShop.name || 'INVOICE';
+                const logoUrl = activeShop.logoUrl;
+                const shouldPrintLogo = activeShop.printLogo;
+                const shopPhone = activeShop.phone || '';
+                const shopAddress = activeShop.address || '';
+
+                let fullLogo = '';
+                if (shouldPrintLogo && logoUrl) {
+                    fullLogo = logoUrl.startsWith('http') || logoUrl.startsWith('data:') 
+                        ? logoUrl 
+                        : `${API_BASE_URL.replace('/api', '')}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+                }
+
+                const logoHtml = fullLogo 
+                    ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${fullLogo}" style="max-width: 180px; max-height: 80px; object-fit: contain;" /></div>` 
                     : '';
+
+                const contactParts = [];
+                if (shopAddress) contactParts.push(shopAddress);
+                if (shopPhone) contactParts.push(`Tel: ${shopPhone}`);
+                const contactHtml = contactParts.length ? `<div style="font-size:12px; margin-bottom:4px; color:#333;">${contactParts.join(' | ')}</div>` : '';
 
                 const receiptHtml = `
                     <html>
                     <head>
-                        <title>Sale Receipt</title>
+                        <title>${shopName && shopName !== 'INVOICE' ? `${shopName} Receipt` : 'Sale Receipt'}</title>
                         <style>
                             body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
                             .header { text-align: center; margin-bottom: 20px; }
@@ -189,8 +212,9 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
                     <body>
                         <div class="header">
                             ${logoHtml}
-                            <h2>${authUser ? authUser.shopName : 'INVOICE'}</h2>
-                            <div>${sale.date || ''}</div>
+                            <h2>${shopName}</h2>
+                            ${contactHtml}
+                            <div>${sale.date ? (typeof sale.date === 'string' ? sale.date : new Date(sale.date).toLocaleString()) : new Date().toLocaleString()}</div>
                         </div>
                         <div>
                             <div><strong>Customer:</strong> ${sale.customerName || 'Walk-in'}</div>

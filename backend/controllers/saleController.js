@@ -1,4 +1,4 @@
-const { Sale, SaleItem, Product, Expense, Supplier, Customer, sequelize } = require('../models');
+const { Sale, SaleItem, Product, Expense, Supplier, Customer, Shop, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 exports.createSale = async (req, res) => {
@@ -83,8 +83,15 @@ exports.createSale = async (req, res) => {
 
     // transaction.commit() is handled by shopScope
     
-    // Fetch with items for response
-    const completeSale = await Sale.findOne({ where: { id: sale.id, shopId: req.shopId }, include: ['items'] });
+    // Fetch with items and shop for response
+    const completeSale = await Sale.findOne({
+      where: { id: sale.id, shopId: req.shopId },
+      include: [
+        'items',
+        { model: Shop, attributes: ['id', 'name', 'phone', 'address', 'logoUrl', 'printLogo'] }
+      ],
+      transaction
+    });
     res.status(201).json(completeSale);
   } catch (err) {
     // transaction.rollback() is handled by shopScope
@@ -94,7 +101,15 @@ exports.createSale = async (req, res) => {
 
 exports.getSales = async (req, res) => {
   try {
-    const sales = await Sale.findAll({ where: { shopId: req.shopId }, include: ['items'] });
+    const where = req.shopId ? { shopId: req.shopId } : {};
+    const sales = await Sale.findAll({
+      where,
+      include: [
+        'items',
+        { model: Shop, attributes: ['id', 'name', 'phone', 'address', 'logoUrl', 'printLogo'] }
+      ],
+      order: [['date', 'DESC'], ['createdAt', 'DESC']]
+    });
     res.json(sales);
   } catch (err) {
     res.status(500).json({ error: err.message });

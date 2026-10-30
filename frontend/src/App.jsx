@@ -147,7 +147,7 @@ const App = () => {
                     <Route path="/add-supplier" element={<AddSupplierDesktop onSupplierAdded={(id) => handleFormSuccess(id, '/suppliers')} onCancel={() => navigate('/suppliers')} />} />
                     <Route path="/add-repair" element={<AddRepairDesktop onRepairAdded={(id) => handleFormSuccess(id, '/repairs')} onCancel={() => navigate('/repairs')} />} />
                     <Route path="/add-part" element={<AddPartDesktop defaultCategory={selectedPartCategory} onPartAdded={() => { setRefreshKey(prev => prev + 1); navigate(selectedPartCategory ? `/parts/${selectedPartCategory}` : '/part-categories'); }} onCancel={() => navigate(selectedPartCategory ? `/parts/${selectedPartCategory}` : '/part-categories')} />} />
-                    <Route path="/add-sale" element={<AddSaleDesktop onSaleAdded={(id) => handleFormSuccess(id, '/sales')} onCancel={() => navigate('/sales')} />} />
+                    <Route path="/add-sale" element={<AddSaleDesktop onSaleAdded={(id) => handleFormSuccess(id, '/sales')} onCancel={() => navigate('/sales')} authUser={authUser} />} />
                     
                     <Route path="/products" element={<ProductListDesktop onAddClick={() => navigate('/add-product')} />} />
                     <Route path="/customers" element={<CustomerListDesktop onAddClick={() => navigate('/add-customer')} />} />

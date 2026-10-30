@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getQuotations, deleteQuotation, convertToSale } from '../api/quotationApi';
+import { API_BASE_URL } from '../api/config';
 
 const fmt = (x) => `Rs. ${Number(x || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -72,10 +73,38 @@ const QuotationList = ({ onAddClick }) => {
             `<tr><td>${it.productName || ''}</td><td style="text-align:right;">${it.quantity || 1}</td><td style="text-align:right;">Rs. ${Number(it.price || 0).toFixed(2)}</td><td style="text-align:right;">Rs. ${Number(it.subtotal || 0).toFixed(2)}</td></tr>`
         ).join('');
 
+        let userStorage = null;
+        try {
+            userStorage = JSON.parse(localStorage.getItem('user') || '{}');
+        } catch (e) {}
+
+        const shop = q.Shop || q.shop || userStorage || {};
+        const shopName = shop.name || shop.shopName || userStorage?.shopName || 'QUOTATION';
+        const logoUrl = shop.logoUrl || userStorage?.logoUrl;
+        const shouldPrintLogo = shop.printLogo !== undefined ? shop.printLogo : userStorage?.printLogo;
+        const shopPhone = shop.phone || userStorage?.phone || '';
+        const shopAddress = shop.address || userStorage?.address || '';
+
+        let fullLogo = '';
+        if (shouldPrintLogo && logoUrl) {
+            fullLogo = logoUrl.startsWith('http') || logoUrl.startsWith('data:') 
+                ? logoUrl 
+                : `${API_BASE_URL.replace('/api', '')}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+        }
+
+        const logoHtml = fullLogo 
+            ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${fullLogo}" style="max-width: 180px; max-height: 80px; object-fit: contain;" /></div>` 
+            : '';
+
+        const contactParts = [];
+        if (shopAddress) contactParts.push(shopAddress);
+        if (shopPhone) contactParts.push(`Tel: ${shopPhone}`);
+        const contactHtml = contactParts.length ? `<div style="font-size:12px; margin-bottom:4px; color:#555;">${contactParts.join(' | ')}</div>` : '';
+
         const receiptHtml = `
             <html>
             <head>
-                <title>Quotation</title>
+                <title>${shopName && shopName !== 'QUOTATION' ? `${shopName} Quotation` : 'Quotation'}</title>
                 <style>
                     body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
                     .header { text-align: center; margin-bottom: 20px; }
@@ -88,7 +117,10 @@ const QuotationList = ({ onAddClick }) => {
             </head>
             <body>
                 <div class="header">
-                    <h2>QUOTATION</h2>
+                    ${logoHtml}
+                    <h2 style="margin:0 0 4px 0;">${shopName}</h2>
+                    <div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:#666; margin-bottom:4px;">QUOTATION</div>
+                    ${contactHtml}
                     <div>QT# ${q.quotationNumber || q._id || ''}</div>
                     <div>${q.date ? new Date(q.date).toLocaleDateString() : new Date().toLocaleDateString()}</div>
                 </div>

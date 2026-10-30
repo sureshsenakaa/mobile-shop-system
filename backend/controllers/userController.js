@@ -93,6 +93,8 @@ exports.getCurrentUser = async (req, res) => {
         role: user.role, 
         shopId: user.shopId,
         shopName: user.Shop ? user.Shop.name : (user.role === 'super_admin' ? 'Super Admin' : null),
+        phone: user.Shop ? user.Shop.phone : null,
+        address: user.Shop ? user.Shop.address : null,
         logoUrl: user.Shop ? user.Shop.logoUrl : null,
         printLogo: user.Shop ? user.Shop.printLogo : false,
         themeColor: user.Shop ? user.Shop.themeColor : '#3b82f6',

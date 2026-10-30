@@ -85,6 +85,8 @@ async function login(req, res) {
         role: user.role, 
         shopId: user.shopId,
         shopName: user.Shop ? user.Shop.name : (user.role === 'super_admin' ? 'Super Admin' : null),
+        phone: user.Shop ? user.Shop.phone : null,
+        address: user.Shop ? user.Shop.address : null,
         logoUrl: user.Shop ? user.Shop.logoUrl : null,
         printLogo: user.Shop ? user.Shop.printLogo : false,
         themeColor: user.Shop ? user.Shop.themeColor : '#3b82f6',
@@ -147,6 +149,8 @@ async function verify2FA(req, res) {
       user: {
         id: user.id, username: user.username, role: user.role, shopId: user.shopId,
         shopName: user.Shop ? user.Shop.name : (user.role === 'super_admin' ? 'Super Admin' : null),
+        phone: user.Shop ? user.Shop.phone : null,
+        address: user.Shop ? user.Shop.address : null,
         logoUrl: user.Shop ? user.Shop.logoUrl : null, printLogo: user.Shop ? user.Shop.printLogo : false,
         themeColor: user.Shop ? user.Shop.themeColor : '#3b82f6', permissions: user.permissions || []
       }
@@ -179,6 +183,8 @@ async function resetTempPassword(req, res) {
       user: {
         id: user.id, username: user.username, role: user.role, shopId: user.shopId,
         shopName: user.Shop ? user.Shop.name : (user.role === 'super_admin' ? 'Super Admin' : null),
+        phone: user.Shop ? user.Shop.phone : null,
+        address: user.Shop ? user.Shop.address : null,
         logoUrl: user.Shop ? user.Shop.logoUrl : null, printLogo: user.Shop ? user.Shop.printLogo : false,
         themeColor: user.Shop ? user.Shop.themeColor : '#3b82f6', permissions: user.permissions || []
       }

@@ -120,14 +120,33 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
             return `<tr><td>${it.productName}${extra}</td><td style="text-align:right;">${it.quantity}</td><td style="text-align:right;">Rs. ${Number(it.price || (it.subtotal/(it.quantity||1))).toFixed(2)}</td><td style="text-align:right;">Rs. ${Number(it.subtotal).toFixed(2)}</td><td style="text-align:center; padding:10px 12px; min-width:120px;">${warrantyCell}</td></tr>`;
         }).join('');
 
-        const logoHtml = authUser && authUser.printLogo && authUser.logoUrl 
-            ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${API_BASE_URL.replace('/api', '')}${authUser.logoUrl}" style="max-width: 200px;" /></div>` 
+        const shop = sale.Shop || sale.shop || authUser || {};
+        const shopName = shop.name || shop.shopName || (authUser && authUser.role !== 'super_admin' ? authUser.shopName : null) || 'INVOICE';
+        const logoUrl = shop.logoUrl || (authUser && authUser.logoUrl);
+        const shouldPrintLogo = shop.printLogo !== undefined ? shop.printLogo : (authUser && authUser.printLogo);
+        const shopPhone = shop.phone || authUser?.phone || '';
+        const shopAddress = shop.address || authUser?.address || '';
+
+        let fullLogo = '';
+        if (shouldPrintLogo && logoUrl) {
+            fullLogo = logoUrl.startsWith('http') || logoUrl.startsWith('data:') 
+                ? logoUrl 
+                : `${API_BASE_URL.replace('/api', '')}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+        }
+
+        const logoHtml = fullLogo 
+            ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${fullLogo}" style="max-width: 180px; max-height: 80px; object-fit: contain;" /></div>` 
             : '';
+
+        const contactParts = [];
+        if (shopAddress) contactParts.push(shopAddress);
+        if (shopPhone) contactParts.push(`Tel: ${shopPhone}`);
+        const contactHtml = contactParts.length ? `<div style="font-size:12px; margin-bottom:4px; color:#333;">${contactParts.join(' | ')}</div>` : '';
 
         const receiptHtml = `
             <html>
             <head>
-                <title>Invoice</title>
+                <title>${shopName && shopName !== 'INVOICE' ? `${shopName} Invoice` : 'Invoice'}</title>
                 <style>
                     body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
                     .header { text-align: center; margin-bottom: 20px; }
@@ -143,7 +162,8 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
             <body>
                 <div class="header">
                     ${logoHtml}
-                    <h2>${authUser ? authUser.shopName : 'INVOICE'}</h2>
+                    <h2>${shopName}</h2>
+                    ${contactHtml}
                     <div>${formatDateString(sale.date)}</div>
                 </div>
                 <div>
@@ -230,7 +250,7 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
                                     <td className="cell">
                                         <div className="actions">
                                             <button onClick={() => handlePrint(s)} className="btn btn-sm btn-primary">Print</button>
-                                            <button onClick={() => downloadSalePdf(s, productsMap)} className="btn btn-sm btn-success">Download PDF</button>
+                                            <button onClick={() => downloadSalePdf(s, productsMap, authUser)} className="btn btn-sm btn-success">Download PDF</button>
                                             {!s.returned ? (
                                                 <button onClick={() => handleReturn(s._id)} className="btn btn-sm btn-warning">Return</button>
                                             ) : (
