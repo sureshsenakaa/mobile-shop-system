@@ -35,7 +35,7 @@ import CashRegister from './components/CashRegister';
 import QuotationList from './components/QuotationList';
 import AddQuotation from './components/AddQuotation';
 
-import { API_BASE_URL } from './api/config';
+import { API_BASE_URL, resolveMediaUrl } from './api/config';
 
 const App = () => {
     const { authUser, login, logout, loading } = useContext(AuthContext);
@@ -90,7 +90,17 @@ const App = () => {
             <header className="app-header">
                 <div className="header-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {authUser.logoUrl && !isSuperAdmin && (
-                        <img src={`${API_BASE_URL.replace('/api', '')}${authUser.logoUrl}`} alt="Logo" className="header-logo" />
+                        <img 
+                            src={resolveMediaUrl(authUser.logoUrl)} 
+                            alt="Logo" 
+                            className="header-logo" 
+                            onError={(e) => {
+                                const rel = authUser.logoUrl.startsWith('/') ? authUser.logoUrl : `/${authUser.logoUrl}`;
+                                if (e.target.src !== window.location.origin + rel) {
+                                    e.target.src = rel;
+                                }
+                            }}
+                        />
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <h1 className="app-title">

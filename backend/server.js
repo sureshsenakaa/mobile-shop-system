@@ -29,7 +29,18 @@ const app = express();
 app.set('trust proxy', 1); // Trust Nginx reverse proxy headers for rate-limiting
 app.use(express.json());
 app.use(cors());
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:', '*'],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+      fontSrc: ["'self'", 'https:', 'data:'],
+    }
+  }
+}));
 
 // Simple request logger
 app.use((req, res, next) => {

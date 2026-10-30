@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getSales, returnSale, deleteSale } from '../api/saleApi';
 import { downloadSalePdf } from '../utils/pdf';
 import { getProducts } from '../api/productApi';
-import { API_BASE_URL } from '../api/config';
+import { API_BASE_URL, resolveMediaUrl } from '../api/config';
 import './SalesListDesktop.css';
 
 const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) => {
@@ -129,9 +129,7 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
 
         let fullLogo = '';
         if (shouldPrintLogo && logoUrl) {
-            fullLogo = logoUrl.startsWith('http') || logoUrl.startsWith('data:') 
-                ? logoUrl 
-                : `${API_BASE_URL.replace('/api', '')}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+            fullLogo = resolveMediaUrl(logoUrl);
         }
 
         const logoHtml = fullLogo 

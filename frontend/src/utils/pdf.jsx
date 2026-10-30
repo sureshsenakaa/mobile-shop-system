@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../api/config';
+import { API_BASE_URL, resolveMediaUrl } from '../api/config';
 
 // Lightweight helper to download HTML as PDF using html2pdf (loaded from CDN at runtime)
 const HTML2PDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js';
@@ -123,9 +123,8 @@ export function buildSaleReceiptHtml(sale, productsMap = {}, extraShopInfo = {})
   const shopAddress = shop.address || extraShopInfo.address || (userStorage?.role !== 'super_admin' ? userStorage?.address : null) || '';
 
   let logoUrl = shop.logoUrl || extraShopInfo.logoUrl || (userStorage?.role !== 'super_admin' ? userStorage?.logoUrl : null) || null;
-  if (logoUrl && typeof logoUrl === 'string' && !logoUrl.startsWith('http') && !logoUrl.startsWith('data:')) {
-    const backendOrigin = API_BASE_URL.replace(/\/api\/?$/, '');
-    logoUrl = `${backendOrigin}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+  if (logoUrl) {
+    logoUrl = resolveMediaUrl(logoUrl);
   }
 
   const logoHtml = logoUrl 

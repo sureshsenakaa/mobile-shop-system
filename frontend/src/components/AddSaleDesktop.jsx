@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getCustomers, addCustomer } from '../api/customerApi';
 import { getProducts } from '../api/productApi';
 import { addSale } from '../api/saleApi';
-import { API_BASE_URL } from '../api/config';
+import { API_BASE_URL, resolveMediaUrl } from '../api/config';
 
 const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
     const [products, setProducts] = useState([]);
@@ -182,9 +182,7 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
 
                 let fullLogo = '';
                 if (shouldPrintLogo && logoUrl) {
-                    fullLogo = logoUrl.startsWith('http') || logoUrl.startsWith('data:') 
-                        ? logoUrl 
-                        : `${API_BASE_URL.replace('/api', '')}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+                    fullLogo = resolveMediaUrl(logoUrl);
                 }
 
                 const logoHtml = fullLogo 

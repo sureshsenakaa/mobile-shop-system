@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { apiUrl, API_BASE_URL } from '../api/config';
+import { apiUrl, API_BASE_URL, resolveMediaUrl } from '../api/config';
 import { generate2FA, enable2FA } from '../api/authApi';
 import { AuthContext } from '../contexts/AuthContext';
 
@@ -19,6 +19,7 @@ const Settings = ({ user }) => {
     const [printLogo, setPrintLogo] = useState(user?.printLogo || false);
     const [currentLogoUrl, setCurrentLogoUrl] = useState(user?.logoUrl || null);
     const [logoFile, setLogoFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
     const [savingBranding, setSavingBranding] = useState(false);
 
     // 2FA State
@@ -99,6 +100,7 @@ const Settings = ({ user }) => {
             if (data.shop) {
                 if (data.shop.logoUrl) setCurrentLogoUrl(data.shop.logoUrl);
                 setLogoFile(null);
+                setPreviewUrl(null);
                 if (updateAuthUser) {
                     updateAuthUser({
                         shopName: data.shop.name,
@@ -144,11 +146,7 @@ const Settings = ({ user }) => {
         }
     };
 
-    const resolvedLogoSrc = currentLogoUrl 
-        ? (currentLogoUrl.startsWith('http') || currentLogoUrl.startsWith('data:') 
-            ? currentLogoUrl 
-            : `${API_BASE_URL.replace('/api', '')}${currentLogoUrl.startsWith('/') ? '' : '/'}${currentLogoUrl}`)
-        : null;
+    const resolvedLogoSrc = previewUrl || (currentLogoUrl ? resolveMediaUrl(currentLogoUrl) : null);
 
     return (
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -219,10 +217,16 @@ const Settings = ({ user }) => {
                                             src={resolvedLogoSrc} 
                                             alt="Shop Logo" 
                                             style={{ maxHeight: 70, maxWidth: 140, objectFit: 'contain', display: 'block' }} 
+                                            onError={(e) => {
+                                                const rel = currentLogoUrl?.startsWith('/') ? currentLogoUrl : `/${currentLogoUrl}`;
+                                                if (rel && e.target.src !== window.location.origin + rel) {
+                                                    e.target.src = rel;
+                                                }
+                                            }}
                                         />
                                     </div>
                                     <div style={{ fontSize: 13, color: '#555' }}>
-                                        Current Shop Logo
+                                        {previewUrl ? 'New Logo Selected (Click Save to apply)' : 'Current Shop Logo'}
                                     </div>
                                 </div>
                             )}
@@ -232,7 +236,15 @@ const Settings = ({ user }) => {
                                 <input 
                                     type="file" 
                                     accept="image/*" 
-                                    onChange={e => setLogoFile(e.target.files[0] || null)} 
+                                    onChange={e => {
+                                        const file = e.target.files[0] || null;
+                                        setLogoFile(file);
+                                        if (file) {
+                                            setPreviewUrl(URL.createObjectURL(file));
+                                        } else {
+                                            setPreviewUrl(null);
+                                        }
+                                    }} 
                                     className="input" 
                                     style={{ padding: '8px' }} 
                                 />

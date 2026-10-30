@@ -17,3 +17,13 @@ export const apiUrl = (path = '') => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     return `${API_BASE_URL}${normalizedPath}`;
 };
+
+export const resolveMediaUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+        return url;
+    }
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    const backendOrigin = API_BASE_URL.replace(/\/api\/?$/, '');
+    return `${backendOrigin}${cleanPath}`;
+};

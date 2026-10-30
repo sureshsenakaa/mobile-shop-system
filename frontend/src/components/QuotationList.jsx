@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getQuotations, deleteQuotation, convertToSale } from '../api/quotationApi';
-import { API_BASE_URL } from '../api/config';
+import { API_BASE_URL, resolveMediaUrl } from '../api/config';
 
 const fmt = (x) => `Rs. ${Number(x || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -87,9 +87,7 @@ const QuotationList = ({ onAddClick }) => {
 
         let fullLogo = '';
         if (shouldPrintLogo && logoUrl) {
-            fullLogo = logoUrl.startsWith('http') || logoUrl.startsWith('data:') 
-                ? logoUrl 
-                : `${API_BASE_URL.replace('/api', '')}${logoUrl.startsWith('/') ? '' : '/'}${logoUrl}`;
+            fullLogo = resolveMediaUrl(logoUrl);
         }
 
         const logoHtml = fullLogo 
