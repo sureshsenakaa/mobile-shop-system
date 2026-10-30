@@ -191,9 +191,9 @@ const Settings = ({ user }) => {
                 <div className="card" style={{ marginTop: 30 }}>
                     <h3 style={{ marginBottom: 10 }}>Local Barcode Printer</h3>
                     <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>
-                        Configure the barcode sticker dimensions for THIS computer only. Defaults to 38x25mm.
+                        Configure the barcode sticker dimensions and header for THIS computer only. Defaults to 38x25mm.
                     </p>
-                    <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 15, marginBottom: 15 }}>
                         <div>
                             <label className="form-label">Sticker Width (mm)</label>
                             <input type="number" defaultValue={localStorage.getItem('stickerWidth') || '38'} id="localStickerWidth" className="input" style={{ width: 120 }} />
@@ -202,11 +202,23 @@ const Settings = ({ user }) => {
                             <label className="form-label">Sticker Height (mm)</label>
                             <input type="number" defaultValue={localStorage.getItem('stickerHeight') || '25'} id="localStickerHeight" className="input" style={{ width: 120 }} />
                         </div>
+                        <div style={{ minWidth: 200, flex: 1 }}>
+                            <label className="form-label">Shop Name on Barcode</label>
+                            <input type="text" defaultValue={localStorage.getItem('barcodeShopName') !== null ? localStorage.getItem('barcodeShopName') : (user?.shopName || '')} id="localBarcodeShopName" className="input" placeholder="Shop Name" />
+                        </div>
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                            <input type="checkbox" defaultChecked={localStorage.getItem('barcodeIncludeShopName') !== 'false'} id="localBarcodeIncludeShopName" style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                            <span>Print Shop Name header on barcode stickers</span>
+                        </label>
                     </div>
                     <button onClick={() => {
                         localStorage.setItem('stickerWidth', document.getElementById('localStickerWidth').value || '38');
                         localStorage.setItem('stickerHeight', document.getElementById('localStickerHeight').value || '25');
-                        alert('Local printer settings saved! Barcodes will now print at this size on this computer.');
+                        localStorage.setItem('barcodeShopName', document.getElementById('localBarcodeShopName').value);
+                        localStorage.setItem('barcodeIncludeShopName', document.getElementById('localBarcodeIncludeShopName').checked ? 'true' : 'false');
+                        alert('Local barcode printer settings saved successfully!');
                     }} className="btn btn-primary">Save Local Settings</button>
                 </div>
             )}
