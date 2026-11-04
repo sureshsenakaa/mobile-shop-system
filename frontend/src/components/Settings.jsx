@@ -76,7 +76,7 @@ const Settings = ({ user }) => {
     };
 
     useEffect(() => {
-        if (user && user.role === 'shop_admin') {
+        if (user && (user.role === 'shop_admin' || user.role === 'super_admin')) {
             fetch(apiUrl('/settings/branding'), {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             })
@@ -130,6 +130,9 @@ const Settings = ({ user }) => {
             formData.append('address', address);
             formData.append('themeColor', themeColor);
             formData.append('printLogo', printLogo);
+            if (user?.shopId) {
+                formData.append('shopId', user.shopId);
+            }
             if (logoFile) {
                 formData.append('logo', logoFile);
             }
@@ -199,7 +202,7 @@ const Settings = ({ user }) => {
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <h2 style={{ color: 'var(--primary)', marginBottom: 20 }}>Settings</h2>
 
-            {user && user.role === 'shop_admin' && (
+            {user && (user.role === 'shop_admin' || user.role === 'super_admin') && (
                 <div className="card" style={{ marginBottom: 30 }}>
                     <h3 style={{ marginBottom: 10 }}>Shop Details & Invoice Branding</h3>
                     <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>

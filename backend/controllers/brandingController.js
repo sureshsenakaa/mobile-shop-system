@@ -1,11 +1,25 @@
 const { Shop } = require('../models');
 const path = require('path');
 const fs = require('fs');
-const sharp = require('sharp');
+
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (e) {
+  console.warn('Sharp module not available or failed to load:', e.message);
+}
 
 exports.updateBranding = async (req, res) => {
   try {
-    const shop = await Shop.findByPk(req.shopId);
+    let targetShopId = req.shopId;
+    if (!targetShopId && req.user && req.user.role === 'super_admin') {
+      targetShopId = req.body.shopId || req.query.shopId || 1;
+    }
+
+    let shop = targetShopId ? await Shop.findByPk(targetShopId) : null;
+    if (!shop) {
+      shop = await Shop.findOne();
+    }
     if (!shop) return res.status(404).json({ error: 'Shop not found' });
 
     const updates = {};
@@ -17,19 +31,33 @@ exports.updateBranding = async (req, res) => {
     if (req.body.removeLogo === 'true' || req.body.removeLogo === true) updates.logoUrl = null;
 
     if (req.file) {
-      const filename = `shop_${shop.id}_logo_${Date.now()}.png`;
-      const outputPath = path.join(__dirname, '..', 'public', 'uploads', filename);
+      const ext = path.extname(req.file.originalname || '') || '.png';
+      const isSvg = ext.toLowerCase() === '.svg';
+      const filename = `shop_${shop.id}_logo_${Date.now()}${isSvg ? '.svg' : '.png'}`;
+      const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+      const outputPath = path.join(uploadDir, filename);
 
       // Ensure directory exists
-      if (!fs.existsSync(path.dirname(outputPath))) {
-        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Resize preserving aspect ratio, crisp details and transparent alpha channel
-      await sharp(req.file.buffer)
-        .resize({ width: 400, withoutEnlargement: true })
-        .png({ quality: 90 })
-        .toFile(outputPath);
+      let processed = false;
+      if (sharp && req.file.buffer && !isSvg) {
+        try {
+          await sharp(req.file.buffer)
+            .resize({ width: 400, withoutEnlargement: true })
+            .png({ quality: 90 })
+            .toFile(outputPath);
+          processed = true;
+        } catch (sharpErr) {
+          console.warn('Sharp processing failed, falling back to direct write:', sharpErr.message);
+        }
+      }
+
+      if (!processed) {
+        fs.writeFileSync(outputPath, req.file.buffer);
+      }
 
       updates.logoUrl = `/uploads/${filename}`;
     }
@@ -41,18 +69,32 @@ exports.updateBranding = async (req, res) => {
     res.json({ message: 'Shop details and branding updated successfully', shop: updatedShop });
   } catch (err) {
     console.error('Branding update error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || 'Internal server error while updating branding' });
   }
 };
 
 exports.getBranding = async (req, res) => {
   try {
-    const shop = await Shop.findByPk(req.shopId, {
+    let targetShopId = req.shopId;
+    if (!targetShopId && req.user && req.user.role === 'super_admin') {
+      targetShopId = req.query.shopId || 1;
+    }
+
+    let shop = targetShopId ? await Shop.findByPk(targetShopId, {
       attributes: ['id', 'name', 'phone', 'address', 'themeColor', 'logoUrl', 'printLogo']
-    });
+    }) : null;
+
+    if (!shop) {
+      shop = await Shop.findOne({
+        attributes: ['id', 'name', 'phone', 'address', 'themeColor', 'logoUrl', 'printLogo']
+      });
+    }
+
     if (!shop) return res.status(404).json({ error: 'Shop not found' });
     res.json(shop);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('getBranding error:', err);
+    res.status(500).json({ error: err.message || 'Failed to fetch branding' });
   }
 };
+

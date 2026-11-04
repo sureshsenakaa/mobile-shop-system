@@ -61,6 +61,7 @@ app.use('/api', apiLimiter);
 
 // Serve static uploads (for logos)
 app.use('/uploads', express.static(require('path').join(__dirname, 'public', 'uploads')));
+app.use('/api/uploads', express.static(require('path').join(__dirname, 'public', 'uploads')));
 
 // Global Audit Logger for modifying requests
 const { globalAuditLogger } = require('./middleware/auditLogger');
@@ -115,6 +116,16 @@ sequelize.authenticate()
       await sequelize.query('ALTER TABLE IF EXISTS "PurchaseOrders" ADD COLUMN IF NOT EXISTS "shopId" INTEGER;');
       await sequelize.query('ALTER TABLE IF EXISTS "Returns" ADD COLUMN IF NOT EXISTS "shopId" INTEGER;');
       await sequelize.query('ALTER TABLE IF EXISTS "Users" ADD COLUMN IF NOT EXISTS "basicSalary" DOUBLE PRECISION DEFAULT 0;');
+
+      // Auto-migrate Shops table columns if missing
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "logoUrl" VARCHAR(255);');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "printLogo" BOOLEAN DEFAULT false;');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "themeColor" VARCHAR(255) DEFAULT \'#3b82f6\';');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "billingStatus" VARCHAR(255) DEFAULT \'active\';');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "nextBillingDate" TIMESTAMP WITH TIME ZONE;');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "phone" VARCHAR(255);');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "address" VARCHAR(255);');
+      await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "ownerName" VARCHAR(255);');
     } catch (e) {
       console.log('Schema migration notice:', e.message);
     }
