@@ -64,6 +64,12 @@ const RestockModal = ({ isOpen, target, onClose, onRestocked, suppliers = [], op
     const isCostChanged = (cost !== '' && !isNaN(Number(cost)) && Number(cost) !== currentCost && addQty > 0);
 
     const handleSubmit = async () => {
+        if (saving) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            setError('Network offline: Please check your internet connection and try again.');
+            return;
+        }
+
         let finalQty = 0;
         let imeiList = [];
         setError('');
@@ -313,9 +319,29 @@ const RestockModal = ({ isOpen, target, onClose, onRestocked, suppliers = [], op
                         type="button" 
                         onClick={handleSubmit} 
                         disabled={saving}
-                        style={{ padding: '9px 18px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: '600', opacity: saving ? 0.7 : 1 }}
+                        style={{ 
+                            padding: '9px 18px', 
+                            borderRadius: 6, 
+                            border: 'none', 
+                            background: '#2563eb', 
+                            color: '#fff', 
+                            cursor: saving ? 'wait' : 'pointer', 
+                            fontSize: 13, 
+                            fontWeight: '600', 
+                            opacity: saving ? 0.75 : 1,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
                     >
-                        {saving ? '⏳ Restocking...' : '📦 Restock Product'}
+                        {saving ? (
+                            <>
+                                <span className="spinner-sm" style={{ borderTopColor: '#fff' }}></span>
+                                <span>Restocking...</span>
+                            </>
+                        ) : (
+                            '📦 Restock Product'
+                        )}
                     </button>
                 </div>
             </div>

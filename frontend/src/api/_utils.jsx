@@ -35,4 +35,34 @@ export async function parseJsonResponse(response) {
   return data !== null ? data : text;
 }
 
-export default { parseJsonResponse };
+/**
+ * Enhanced fetch with browser offline check and configurable timeout
+ */
+export async function safeFetch(url, options = {}, timeoutMs = 25000) {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('Network offline: Please check your internet connection and try again.');
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Connection timed out: The server took too long to respond. Please check your network and try again.');
+    }
+    if (err.message && (err.message.toLowerCase().includes('failed to fetch') || err.message.toLowerCase().includes('networkerror'))) {
+      throw new Error('Network error: Unable to connect to the server. Please check your internet connection.');
+    }
+    throw err;
+  }
+}
+
+export default { parseJsonResponse, safeFetch };

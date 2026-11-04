@@ -3,6 +3,7 @@ import { getCustomers, addCustomer } from '../api/customerApi';
 import { getProducts } from '../api/productApi';
 import { addSale } from '../api/saleApi';
 import { API_BASE_URL, resolveMediaUrl } from '../api/config';
+import { printReceipt } from '../utils/receiptPrinter';
 
 const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
     const [products, setProducts] = useState([]);
@@ -27,6 +28,20 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
 
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [splitPayments, setSplitPayments] = useState({ cash: 0, card: 0, bank: 0, credit: 0 });
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOffline(false);
+        const handleOffline = () => setIsOffline(true);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     useEffect(() => {
         const fetch = async () => {
@@ -137,6 +152,13 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            alert('Cannot complete sale: You are currently offline. Please check your internet connection.');
+            return;
+        }
+
         if (items.length === 0) return alert('Please add at least one product to the sale');
 
         if (paymentMethod === 'Split') {
@@ -160,6 +182,7 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
             date: new Date().toISOString()
         };
 
+        setIsSubmitting(true);
         try {
             const saved = await addSale(saleData);
             alert('Sale completed!');
@@ -167,85 +190,7 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
 
             if (window.confirm('Print receipt now?')) {
                 const sale = { ...saleData, ...saved };
-                const rows = (sale.items || []).map(it => `<tr><td>${it.productName}</td><td style="text-align:right;">${it.quantity}</td><td style="text-align:right;">Rs. ${Number(it.price).toFixed(2)}</td><td style="text-align:right;">Rs. ${Number(it.subtotal).toFixed(2)}</td></tr>`).join('');
-                
-                let userFromStorage = null;
-                try {
-                    userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
-                } catch (e) {}
-                const activeShop = (saved && (saved.Shop || saved.shop)) || authUser || userFromStorage || {};
-                const shopName = activeShop.shopName || activeShop.name || 'INVOICE';
-                const logoUrl = activeShop.logoUrl;
-                const shouldPrintLogo = activeShop.printLogo;
-                const shopPhone = activeShop.phone || '';
-                const shopAddress = activeShop.address || '';
-
-                let fullLogo = '';
-                if (shouldPrintLogo && logoUrl) {
-                    fullLogo = resolveMediaUrl(logoUrl);
-                }
-
-                const logoHtml = fullLogo 
-                    ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${fullLogo}" style="max-width: 180px; max-height: 80px; object-fit: contain;" /></div>` 
-                    : '';
-
-                const contactParts = [];
-                if (shopAddress) contactParts.push(shopAddress);
-                if (shopPhone) contactParts.push(`Tel: ${shopPhone}`);
-                const contactHtml = contactParts.length ? `<div style="font-size:12px; margin-bottom:4px; color:#333;">${contactParts.join(' | ')}</div>` : '';
-
-                const receiptHtml = `
-                    <html>
-                    <head>
-                        <title>${shopName && shopName !== 'INVOICE' ? `${shopName} Receipt` : 'Sale Receipt'}</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                            .items { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                            .items th, .items td { border: 1px solid #000; padding: 8px; }
-                            .total { font-weight: bold; }
-                            @media print { body { padding: 0; margin: 0; width: 100%; } }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            ${logoHtml}
-                            <h2>${shopName}</h2>
-                            ${contactHtml}
-                            <div>${sale.date ? (typeof sale.date === 'string' ? sale.date : new Date(sale.date).toLocaleString()) : new Date().toLocaleString()}</div>
-                        </div>
-                        <div>
-                            <div><strong>Customer:</strong> ${sale.customerName || 'Walk-in'}</div>
-                            <div><strong>Mobile:</strong> ${sale.customerMobile || '-'}</div>
-                        </div>
-                        <table class="items">
-                            <thead>
-                                <tr><th>Description</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th></tr>
-                            </thead>
-                            <tbody>
-                                ${rows}
-                            </tbody>
-                        </table>
-                        <div style="margin-top:20px; text-align:right;">
-                            <div>Subtotal: Rs. ${Number(sale.subtotal).toFixed(2)}</div>
-                            <div>Discount: Rs. ${Number(sale.discount).toFixed(2)}</div>
-                            <div class="total">Grand Total: Rs. ${Number(sale.total).toFixed(2)}</div>
-                        </div>
-                        <script>
-                            window.onload = function() { window.print(); };
-                        </script>
-                    </body>
-                    </html>
-                `;
-
-                const newWindow = window.open('', '_blank', 'width=600,height=800');
-                if (newWindow) {
-                    newWindow.document.open();
-                    newWindow.document.write(receiptHtml);
-                    newWindow.document.close();
-                } else {
-                    alert('Popup blocked. Please allow popups for this site to print receipts.');
-                }
+                printReceipt(sale, { authUser });
             }
 
             // reset form
@@ -259,12 +204,19 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
             console.error(err);
             // Show backend error message when available (e.g., unauthorized)
             alert(err && err.message ? `Failed to complete sale: ${err.message}` : 'Failed to complete sale');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <div className="card form-card">
             <h2 style={{ textAlign: 'center', color: '#333' }}>New Sale (POS)</h2>
+            {isOffline && (
+                <div className="offline-banner">
+                    ⚠️ <strong>Offline Warning:</strong> Your device is disconnected from the internet. Please reconnect before completing sales.
+                </div>
+            )}
             <form onSubmit={handleSubmit}>
 
                 <label className="form-label">📊 Scan Barcode</label>
@@ -471,8 +423,22 @@ const AddSaleDesktop = ({ onSaleAdded, onCancel, authUser }) => {
                 </div>
 
                 <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                    <button type="submit" className="btn btn-accent" style={{ flex: 1 }}>Complete Sale</button>
+                    <button type="button" onClick={onCancel} className="btn btn-ghost" style={{ flex: 1 }} disabled={isSubmitting}>Cancel</button>
+                    <button 
+                        type="submit" 
+                        className={`btn btn-accent ${isSubmitting ? 'btn-loading' : ''}`} 
+                        style={{ flex: 1, minHeight: '42px' }} 
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <span className="spinner-sm" style={{ marginRight: '8px' }}></span>
+                                <span>Processing Sale...</span>
+                            </>
+                        ) : (
+                            'Complete Sale'
+                        )}
+                    </button>
                 </div>
             </form>
         </div>

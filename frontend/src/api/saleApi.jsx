@@ -1,9 +1,9 @@
-import { parseJsonResponse } from './_utils';
+import { parseJsonResponse, safeFetch } from './_utils';
 import { apiUrl } from './config';
 import { getAuthHeader } from './authApi';
 
 export const addSale = async (saleData) => {
-    const response = await fetch(apiUrl('/sales'), {
+    const response = await safeFetch(apiUrl('/sales'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify(saleData)

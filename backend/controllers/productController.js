@@ -7,6 +7,9 @@ exports.createProduct = async (req, res) => {
     console.log('Creating product with data:', JSON.stringify(data));
     if (Array.isArray(data.imeiList) && data.imeiList.length > 0) {
       data.stock = data.imeiList.length;
+      if (!data.imei) {
+        data.imei = data.imeiList[0];
+      }
     }
     const options = req._rlsTransaction ? { transaction: req._rlsTransaction } : {};
     const product = await Product.create(data, options);

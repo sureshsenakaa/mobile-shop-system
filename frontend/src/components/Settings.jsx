@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { apiUrl, API_BASE_URL, resolveMediaUrl } from '../api/config';
 import { generate2FA, enable2FA } from '../api/authApi';
 import { AuthContext } from '../contexts/AuthContext';
+import { printReceipt, getPrinterSettings } from '../utils/receiptPrinter';
 
 const Settings = ({ user }) => {
     const { updateAuthUser } = useContext(AuthContext) || {};
@@ -27,6 +28,52 @@ const Settings = ({ user }) => {
     const [twoFaSecret, setTwoFaSecret] = useState(null);
     const [twoFaPin, setTwoFaPin] = useState('');
     const [is2FAEnabled, setIs2FAEnabled] = useState(user?.twoFactorEnabled || false);
+
+    // Bill & Thermal Receipt Printer State
+    const initialPrinter = getPrinterSettings();
+    const [receiptType, setReceiptType] = useState(initialPrinter.receiptType);
+    const [receiptFooter, setReceiptFooter] = useState(initialPrinter.receiptFooter);
+    const [receiptShowImei, setReceiptShowImei] = useState(initialPrinter.showImei);
+    const [receiptShowCustomer, setReceiptShowCustomer] = useState(initialPrinter.showCustomer);
+    const [receiptShowAddress, setReceiptShowAddress] = useState(initialPrinter.showShopAddress);
+    const [receiptShowPhone, setReceiptShowPhone] = useState(initialPrinter.showShopPhone);
+
+    const handleSaveReceiptSettings = () => {
+        localStorage.setItem('receiptType', receiptType);
+        localStorage.setItem('receiptFooter', receiptFooter);
+        localStorage.setItem('receiptShowImei', receiptShowImei ? 'true' : 'false');
+        localStorage.setItem('receiptShowCustomer', receiptShowCustomer ? 'true' : 'false');
+        localStorage.setItem('receiptShowAddress', receiptShowAddress ? 'true' : 'false');
+        localStorage.setItem('receiptShowPhone', receiptShowPhone ? 'true' : 'false');
+        alert('Receipt printer settings saved successfully!');
+    };
+
+    const handleTestPrint = () => {
+        const sampleSale = {
+            id: 101,
+            date: new Date(),
+            customerName: 'Sample Customer',
+            customerMobile: '077 123 4567',
+            items: [
+                { productName: 'Samsung Galaxy A15 (8GB/128GB)', quantity: 1, price: 48500, subtotal: 48500, imei: '354892019482910' },
+                { productName: '25W Fast Charger Type-C', quantity: 1, price: 3500, subtotal: 3500 },
+                { productName: '9D Tempered Glass', quantity: 2, price: 500, subtotal: 1000 }
+            ],
+            subtotal: 53000,
+            discount: 1000,
+            total: 52000,
+            paymentMethod: 'Cash'
+        };
+        printReceipt(sampleSale, {
+            authUser: user,
+            receiptType,
+            receiptFooter,
+            showImei: receiptShowImei,
+            showCustomer: receiptShowCustomer,
+            showShopAddress: receiptShowAddress,
+            showShopPhone: receiptShowPhone
+        });
+    };
 
     useEffect(() => {
         if (user && user.role === 'shop_admin') {
@@ -326,6 +373,79 @@ const Settings = ({ user }) => {
                     </div>
                 )}
             </div>
+
+            {user && user.role !== 'super_admin' && (
+                <div className="card" style={{ marginTop: 30 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                        <h3 style={{ margin: 0 }}>🧾 Bill & Receipt Printer Settings</h3>
+                        <span style={{ fontSize: 12, background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: 12, fontWeight: 'bold' }}>
+                            POS Hardware
+                        </span>
+                    </div>
+                    <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>
+                        Choose whether bills should be printed for POS Thermal Receipt Printers (80mm / 58mm continuous roll) or Standard Document Printers (A4 / A5).
+                    </p>
+
+                    <div style={{ marginBottom: 20 }}>
+                        <label className="form-label" style={{ fontWeight: 600 }}>Default Print Format / Paper Size</label>
+                        <select 
+                            value={receiptType} 
+                            onChange={e => setReceiptType(e.target.value)} 
+                            className="input"
+                            style={{ fontSize: 14, fontWeight: '500' }}
+                        >
+                            <option value="thermal-80mm">🧾 POS Thermal Receipt (80mm / 3 inch) — Recommended for Mobile Shops</option>
+                            <option value="thermal-58mm">🧾 POS Thermal Receipt (58mm / 2 inch) — Mini / Portable Bluetooth Printer</option>
+                            <option value="standard-a4">📄 Standard Invoice (A4 / A5) — Regular Office / DeskJet Printer</option>
+                        </select>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 5 }}>
+                            {receiptType === 'thermal-80mm' && '👉 Optimized for standard 80mm POS thermal roll printers (e.g. Xprinter, Rongta, Epson TM-T88).'}
+                            {receiptType === 'thermal-58mm' && '👉 Ultra-compact layout with smaller font for 58mm mini thermal rolls.'}
+                            {receiptType === 'standard-a4' && '👉 Full-width clean invoice layout with signature lines for A4 or A5 paper.'}
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: 20 }}>
+                        <label className="form-label" style={{ fontWeight: 600 }}>Receipt Footer Note / Return Policy</label>
+                        <textarea 
+                            value={receiptFooter} 
+                            onChange={e => setReceiptFooter(e.target.value)} 
+                            className="input" 
+                            rows="2"
+                            placeholder="e.g. Thank you for your purchase! Goods sold cannot be returned without receipt."
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 25, background: '#f8fafc', padding: 15, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                            <input type="checkbox" checked={receiptShowImei} onChange={e => setReceiptShowImei(e.target.checked)} style={{ width: 16, height: 16 }} />
+                            <span>Print IMEI / Serial on Receipt</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                            <input type="checkbox" checked={receiptShowCustomer} onChange={e => setReceiptShowCustomer(e.target.checked)} style={{ width: 16, height: 16 }} />
+                            <span>Print Customer Name & Mobile</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                            <input type="checkbox" checked={receiptShowAddress} onChange={e => setReceiptShowAddress(e.target.checked)} style={{ width: 16, height: 16 }} />
+                            <span>Print Shop Address on Header</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                            <input type="checkbox" checked={receiptShowPhone} onChange={e => setReceiptShowPhone(e.target.checked)} style={{ width: 16, height: 16 }} />
+                            <span>Print Shop Phone on Header</span>
+                        </label>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <button type="button" onClick={handleSaveReceiptSettings} className="btn btn-primary" style={{ padding: '10px 20px' }}>
+                            💾 Save Printer Settings
+                        </button>
+                        <button type="button" onClick={handleTestPrint} className="btn btn-ghost" style={{ border: '1px solid #cbd5e1', padding: '10px 18px', background: '#fff' }}>
+                            🖨️ Test Print Sample Bill
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {user && user.role !== 'super_admin' && (
                 <div className="card" style={{ marginTop: 30 }}>

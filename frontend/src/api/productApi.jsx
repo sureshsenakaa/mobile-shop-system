@@ -1,5 +1,5 @@
 import { getAuthHeader, isTokenValid } from './authApi';
-import { parseJsonResponse } from './_utils';
+import { parseJsonResponse, safeFetch } from './_utils';
 import { apiUrl } from './config';
 
 export const deleteProduct = async (id) => {
@@ -41,7 +41,7 @@ export const addProduct = async (productData) => {
     if (!isTokenValid()) {
         throw new Error('Invalid or expired token');
     }
-    const response = await fetch(apiUrl('/products'), {
+    const response = await safeFetch(apiUrl('/products'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify(productData)
@@ -61,7 +61,7 @@ export const restockProduct = async (id, quantity, supplierId, imeiList, cost, p
     if (imeiList && imeiList.length > 0) body.imeiList = imeiList;
     if (cost !== undefined && cost !== '') body.cost = parseFloat(cost);
     if (price !== undefined && price !== '') body.price = parseFloat(price);
-    const response = await fetch(apiUrl(`/products/${id}/restock`), {
+    const response = await safeFetch(apiUrl(`/products/${id}/restock`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify(body)

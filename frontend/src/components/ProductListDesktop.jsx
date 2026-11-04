@@ -72,19 +72,32 @@ const ProductListDesktop = ({ onAddClick }) => {
 
     const isAccessory = (p) => {
         if (!p) return false;
-        if (p.type && String(p.type).toLowerCase() === 'accessories') return true;
-        if (p.type && String(p.type).toLowerCase() === 'phones') return false;
-        // fallback
-        if (p.accessoryType) return true;
+        if (p.accessoryType && String(p.accessoryType).trim() !== '') return true;
+        const typeStr = String(p.type || '').toLowerCase();
+        if (typeStr === 'accessories' || typeStr === 'accessory') return true;
+        if (typeStr === 'phone' || typeStr === 'phones') return false;
         if (p.ram || p.storage) return false;
+        if (Array.isArray(p.imeiList) && p.imeiList.length > 0) return false;
+        if (p.imei || p.imei1 || p.imei2) return false;
         return false;
     };
 
-    // filter products by viewFilter: phones have an `imei` field, accessories do not
+    const isPhone = (p) => {
+        if (!p) return false;
+        if (isAccessory(p)) return false;
+        const typeStr = String(p.type || '').toLowerCase();
+        if (typeStr === 'phone' || typeStr === 'phones') return true;
+        if (p.ram || p.storage) return true;
+        if (Array.isArray(p.imeiList) && p.imeiList.length > 0) return true;
+        if (p.imei || p.imei1 || p.imei2) return true;
+        return true;
+    };
+
+    // filter products by viewFilter: phones vs accessories
     let filteredProducts = products.filter(p => {
         if (viewFilter === 'all') return true;
-        if (viewFilter === 'phones') return !!(p && (p.imei || p.imei1 || p.imei2));
-        if (viewFilter === 'accessories') return !(p && (p.imei || p.imei1 || p.imei2));
+        if (viewFilter === 'phones') return isPhone(p);
+        if (viewFilter === 'accessories') return isAccessory(p);
         return true;
     });
 
@@ -98,7 +111,8 @@ const ProductListDesktop = ({ onAddClick }) => {
     if (searchTerm && String(searchTerm).trim() !== '') {
         const q = String(searchTerm).trim().toLowerCase();
         filteredProducts = filteredProducts.filter(p => {
-            const fields = [p.brand, p.model || p.name, p.accessoryType, p.type, p.investorName, p.barcode];
+            const imeiStr = Array.isArray(p.imeiList) ? p.imeiList.join(' ') : String(p.imeiList || '');
+            const fields = [p.brand, p.model || p.name, p.accessoryType, p.type, p.investorName, p.barcode, p.imei, imeiStr];
             return fields.some(f => (f || '').toString().toLowerCase().includes(q));
         });
     }
@@ -118,13 +132,52 @@ const ProductListDesktop = ({ onAddClick }) => {
 
     const renderImei = (p) => {
         if (!p) return '-';
-        if (p.imei) return Array.isArray(p.imei) ? p.imei.join(', ') : String(p.imei);
-        const parts = [];
-        if (p.imei1) parts.push(String(p.imei1));
-        if (p.imei2) parts.push(String(p.imei2));
-        if (parts.length) return parts.join(', ');
-        if (p.serialNumber) return String(p.serialNumber);
-        return '-';
+        let list = [];
+
+        if (Array.isArray(p.imeiList) && p.imeiList.length > 0) {
+            list = p.imeiList.filter(Boolean);
+        } else if (typeof p.imeiList === 'string' && p.imeiList.trim()) {
+            try {
+                const parsed = JSON.parse(p.imeiList);
+                if (Array.isArray(parsed)) list = parsed.filter(Boolean);
+                else list = [p.imeiList.trim()];
+            } catch (e) {
+                list = [p.imeiList.trim()];
+            }
+        } else if (p.imei) {
+            list = Array.isArray(p.imei) ? p.imei : [String(p.imei).trim()];
+        } else if (p.imei1 || p.imei2) {
+            if (p.imei1) list.push(String(p.imei1).trim());
+            if (p.imei2) list.push(String(p.imei2).trim());
+        } else if (p.serialNumber) {
+            return <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.serialNumber}</span>;
+        }
+
+        if (list.length === 0) return <span style={{ color: '#94a3b8' }}>-</span>;
+
+        if (list.length === 1) {
+            return (
+                <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: '600', color: '#0f172a' }}>
+                    {list[0]}
+                </span>
+            );
+        }
+
+        return (
+            <div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: '600', color: '#0f172a' }}>
+                    {list[0]}
+                </div>
+                <div style={{ marginTop: 2 }}>
+                    <span 
+                        title={list.join(', ')} 
+                        style={{ fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 4, fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                        +{list.length - 1} more ({list.length} units)
+                    </span>
+                </div>
+            </div>
+        );
     };
 
     const renderAccessoryBadge = (type) => {

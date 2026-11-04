@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Return, Product, Expense } = require('../models');
+const { Return, Product, Expense, Sale } = require('../models');
 const { requireAuth } = require('../middleware/auth');
 const { injectShopFilter } = require('../middleware/shopScope');
 
@@ -61,6 +61,14 @@ router.post('/', async (req, res) => {
         notes: `Refund for Sale ID: ${req.body.saleId}`,
         shopId: req.shopId
       }, opts);
+    }
+
+    // Mark the sale as returned to prevent duplicate returns
+    if (req.body.saleId) {
+      await Sale.update(
+        { returned: true },
+        { where: { id: req.body.saleId, shopId: req.shopId }, ...opts }
+      );
     }
 
     res.status(201).json(rma);

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { getSales, returnSale, deleteSale } from '../api/saleApi';
+import { useNavigate } from 'react-router-dom';
+import { getSales, deleteSale } from '../api/saleApi';
 import { downloadSalePdf } from '../utils/pdf';
 import { getProducts } from '../api/productApi';
 import { API_BASE_URL, resolveMediaUrl } from '../api/config';
+import { printReceipt } from '../utils/receiptPrinter';
 import './SalesListDesktop.css';
 
 const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) => {
+    const navigate = useNavigate();
     const [sales, setSales] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [productsMap, setProductsMap] = useState({});
@@ -48,16 +51,8 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
     }, [refreshKey, latestSaleId]);
 
 
-    const handleReturn = async (id) => {
-        const ok = window.confirm('Return this sale and add items back to inventory?');
-        if (!ok) return;
-        try {
-            await returnSale(id);
-            await fetchSales();
-        } catch (err) {
-            console.error(err);
-            alert('Failed to return sale');
-        }
+    const handleReturn = (sale) => {
+        navigate(`/returns?saleId=${sale.id || sale._id}`);
     };
 
     const handleDeleteSale = async (id) => {
@@ -88,114 +83,8 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
     // Calculate total revenue from filtered sales
     const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
 
-    // Open a new window with a printable receipt for the given sale (handles multi-item sales)
-    const formatProductExtra = (prod) => {
-        if (!prod) return '';
-        // consider it a phone if it has imei or ram/storage fields
-        const hasImei = !!(prod.imei || prod.imei1 || prod.imei2 || prod.serialNumber);
-        const hasSpecs = !!(prod.ram || prod.storage || prod.color);
-        if (!hasImei && !hasSpecs) return '';
-        const parts = [];
-        if (prod.ram) parts.push(prod.ram);
-        if (prod.storage) parts.push(prod.storage);
-        if (prod.color) parts.push(prod.color);
-        let html = '';
-        if (parts.length) html += `<div style="font-size:12px;color:#555;margin-top:4px">${parts.join(' / ')}</div>`;
-        if (hasImei) {
-            const imei = prod.imei ? (Array.isArray(prod.imei) ? prod.imei.join(', ') : prod.imei) : [prod.imei1, prod.imei2].filter(Boolean).join(', ');
-            if (imei) html += `<div style="font-size:12px;color:#333;margin-top:4px">IMEI: ${imei}</div>`;
-        }
-        return html;
-    };
-
     const handlePrint = (sale) => {
-        // robust customer fields: support older sale shapes where customer may be nested
-        const customerName = sale.customerName || (sale.customer && (sale.customer.name || sale.customer.customerName)) || 'Walk-in';
-        const customerMobile = sale.customerMobile || (sale.customer && (sale.customer.mobile || sale.customer.phone)) || '-';
-        const rows = (sale.items || []).map(it => {
-            const prod = it.productId ? productsMap[it.productId] : null;
-            const extra = formatProductExtra(prod);
-            // include warranty cell (allow handwritten notes) — use existing warranty if present
-            const warrantyCell = it.warranty ? String(it.warranty) : '&nbsp;';
-            return `<tr><td>${it.productName}${extra}</td><td style="text-align:right;">${it.quantity}</td><td style="text-align:right;">Rs. ${Number(it.price || (it.subtotal/(it.quantity||1))).toFixed(2)}</td><td style="text-align:right;">Rs. ${Number(it.subtotal).toFixed(2)}</td><td style="text-align:center; padding:10px 12px; min-width:120px;">${warrantyCell}</td></tr>`;
-        }).join('');
-
-        const shop = sale.Shop || sale.shop || authUser || {};
-        const shopName = shop.name || shop.shopName || (authUser && authUser.role !== 'super_admin' ? authUser.shopName : null) || 'INVOICE';
-        const logoUrl = shop.logoUrl || (authUser && authUser.logoUrl);
-        const shouldPrintLogo = shop.printLogo !== undefined ? shop.printLogo : (authUser && authUser.printLogo);
-        const shopPhone = shop.phone || authUser?.phone || '';
-        const shopAddress = shop.address || authUser?.address || '';
-
-        let fullLogo = '';
-        if (shouldPrintLogo && logoUrl) {
-            fullLogo = resolveMediaUrl(logoUrl);
-        }
-
-        const logoHtml = fullLogo 
-            ? `<div style="text-align:center; margin-bottom: 10px;"><img src="${fullLogo}" style="max-width: 180px; max-height: 80px; object-fit: contain;" /></div>` 
-            : '';
-
-        const contactParts = [];
-        if (shopAddress) contactParts.push(shopAddress);
-        if (shopPhone) contactParts.push(`Tel: ${shopPhone}`);
-        const contactHtml = contactParts.length ? `<div style="font-size:12px; margin-bottom:4px; color:#333;">${contactParts.join(' | ')}</div>` : '';
-
-        const receiptHtml = `
-            <html>
-            <head>
-                <title>${shopName && shopName !== 'INVOICE' ? `${shopName} Invoice` : 'Invoice'}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
-                    .header { text-align: center; margin-bottom: 20px; }
-                    .items { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    .items th, .items td { border: 1px solid #000; padding: 8px; }
-                    .total { font-weight: bold; }
-                    /* Optimizations for thermal printers */
-                    @media print {
-                        body { padding: 0; margin: 0; width: 100%; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    ${logoHtml}
-                    <h2>${shopName}</h2>
-                    ${contactHtml}
-                    <div>${formatDateString(sale.date)}</div>
-                </div>
-                <div>
-                    <div><strong>Customer:</strong> ${customerName}</div>
-                    <div><strong>Mobile:</strong> ${customerMobile}</div>
-                </div>
-                <table class="items">
-                    <thead>
-                        <tr><th>Description</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:center;">Warranty</th></tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
-                <div style="margin-top:20px; text-align:right;">
-                    <div>Subtotal: Rs. ${Number(sale.subtotal).toFixed(2)}</div>
-                    <div>Discount: Rs. ${Number(sale.discount || 0).toFixed(2)}</div>
-                    <div class="total">Grand Total: Rs. ${Number(sale.total).toFixed(2)}</div>
-                </div>
-                <script>
-                    window.onload = function() { window.print(); };
-                </script>
-            </body>
-            </html>
-        `;
-
-        const newWindow = window.open('', '_blank', 'width=600,height=800');
-        if (newWindow) {
-            newWindow.document.open();
-            newWindow.document.write(receiptHtml);
-            newWindow.document.close();
-        } else {
-            alert('Popup blocked. Please allow popups for this site to print receipts.');
-        }
+        printReceipt(sale, { authUser, productsMap });
     };
 
     return (
@@ -250,7 +139,7 @@ const SalesListDesktop = ({ onAddClick, refreshKey, latestSaleId, authUser }) =>
                                             <button onClick={() => handlePrint(s)} className="btn btn-sm btn-primary">Print</button>
                                             <button onClick={() => downloadSalePdf(s, productsMap, authUser)} className="btn btn-sm btn-success">Download PDF</button>
                                             {!s.returned ? (
-                                                <button onClick={() => handleReturn(s._id)} className="btn btn-sm btn-warning">Return</button>
+                                                <button onClick={() => handleReturn(s)} className="btn btn-sm btn-warning" title="Process Return / RMA">Return</button>
                                             ) : (
                                                 <span className="badge-returned">Returned</span>
                                             )}

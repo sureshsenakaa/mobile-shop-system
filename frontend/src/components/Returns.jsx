@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getReturns, createReturn } from '../api/returnApi';
 import { getSales } from '../api/saleApi';
 
 const Returns = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlSaleId = searchParams.get('saleId');
+
     const [returns, setReturns] = useState([]);
     const [sales, setSales] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
@@ -29,6 +33,30 @@ const Returns = () => {
     useEffect(() => {
         loadData();
     }, []);
+
+    // Auto-select sale if saleId was passed via URL (e.g. from Sales History 'Return' button)
+    useEffect(() => {
+        if (urlSaleId && sales.length > 0) {
+            const term = urlSaleId.toString().toLowerCase();
+            const sale = sales.find(s => 
+                (s.id && s.id.toString().toLowerCase() === term) || 
+                (s._id && s._id.toString().toLowerCase() === term) || 
+                `sale-${s.id}`.toLowerCase() === term
+            );
+            if (sale) {
+                if (sale.returned) {
+                    alert('This sale has already been marked as returned.');
+                    setSearchParams({});
+                } else {
+                    setShowCreate(true);
+                    setFoundSale(sale);
+                    setSearchSaleId(String(sale.id || sale._id));
+                    setSelectedItems({});
+                    setGlobalRefund(0);
+                }
+            }
+        }
+    }, [urlSaleId, sales, setSearchParams]);
 
     const handleSearchSale = () => {
         if (!searchSaleId) return alert('Enter a Search Term');
@@ -106,6 +134,7 @@ const Returns = () => {
             setShowCreate(false);
             setFoundSale(null);
             setSearchSaleId('');
+            setSearchParams({});
             loadData();
         } catch (err) {
             alert('Failed to process return');
@@ -127,7 +156,7 @@ const Returns = () => {
                         style={{ flex: 1 }}
                     />
                     <button onClick={handleSearchSale} className="btn btn-primary">Search Sale</button>
-                    <button onClick={() => { setShowCreate(false); setFoundSale(null); setSearchSaleId(''); }} className="btn btn-ghost">Cancel</button>
+                    <button onClick={() => { setShowCreate(false); setFoundSale(null); setSearchSaleId(''); setSearchParams({}); }} className="btn btn-ghost">Cancel</button>
                 </div>
 
                 {!foundSale && (
