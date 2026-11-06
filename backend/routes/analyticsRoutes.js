@@ -30,13 +30,13 @@ router.get('/dashboard', async (req, res) => {
     const repairFilter = { ...dateFilter, status: 'Complete', shopId: req.shopId };
 
     // 1. P&L (Profit & Loss)
-    const totalSales = await Sale.sum('total', { where: saleDateFilter, ...opts }) || 0;
+    // Only count active (unreturned) sales for revenue
+    const totalSales = await Sale.sum('total', { where: { ...saleDateFilter, returned: false }, ...opts }) || 0;
     
-    // Cost of Goods Sold (COGS)
-    // Needs to join SaleItem with Product to get cost
+    // Cost of Goods Sold (COGS) for active sales
     const saleItems = await SaleItem.findAll({
       include: [
-        { model: Sale, where: saleDateFilter },
+        { model: Sale, where: { ...saleDateFilter, returned: false } },
         { model: Product, attributes: ['cost'] }
       ],
       ...opts
@@ -44,7 +44,7 @@ router.get('/dashboard', async (req, res) => {
     
     let totalCogs = 0;
     saleItems.forEach(item => {
-      totalCogs += (item.Product?.cost || 0) * item.quantity;
+      totalCogs += (item.Product?.cost || 0) * (item.quantity || 1);
     });
 
     const totalRepairs = await Repair.sum('cost', { where: repairFilter, ...opts }) || 0;
@@ -60,49 +60,16 @@ router.get('/dashboard', async (req, res) => {
       }
     });
 
-    const totalExpenses = await Expense.sum('amount', { where: expenseDateFilter, ...opts }) || 0;
-
-    // 1.5 Handle Returns to Active Stock (Reversed COGS)
-    // If an item is returned to stock, it reverses the COGS. The refund is already in Expenses.
-    const returnFilter = dateFilter.dateCreated ? { dateCreated: dateFilter.dateCreated, shopId: req.shopId } : { shopId: req.shopId };
-    const returns = await Return.findAll({ where: returnFilter, ...opts });
-    let restockedCogs = 0;
-    
-    // We need to fetch products to get their cost
-    const productIds = [];
-    returns.forEach(r => {
-      if (r.itemsReturned && Array.isArray(r.itemsReturned)) {
-        r.itemsReturned.forEach(item => {
-          if (item.returnToStock && item.productId) {
-            productIds.push(item.productId);
-          }
-        });
-      }
-    });
-
-    const returnedProducts = await Product.findAll({
-      where: { id: { [Op.in]: productIds }, shopId: req.shopId },
-      attributes: ['id', 'cost'],
+    // Operating expenses (exclude COGS and Customer Refund to avoid double-counting)
+    const totalExpenses = await Expense.sum('amount', {
+      where: {
+        ...expenseDateFilter,
+        category: { [Op.notIn]: ['Cost of Goods Sold', 'Customer Refund'] }
+      },
       ...opts
-    });
-    
-    const productCostMap = {};
-    returnedProducts.forEach(p => { productCostMap[p.id] = p.cost || 0; });
+    }) || 0;
 
-    returns.forEach(r => {
-      if (r.itemsReturned && Array.isArray(r.itemsReturned)) {
-        r.itemsReturned.forEach(item => {
-          if (item.returnToStock && item.productId) {
-            restockedCogs += (productCostMap[item.productId] || 0) * (item.quantity || 1);
-          }
-        });
-      }
-    });
-
-    // Adjusted COGS subtracts the cost of items that were put back into stock
-    const adjustedCogs = totalCogs - restockedCogs;
-
-    const grossProfit = (totalSales - adjustedCogs) + (totalRepairs - totalRepairPartsCost);
+    const grossProfit = (totalSales - totalCogs) + (totalRepairs - totalRepairPartsCost);
     const netProfit = grossProfit - totalExpenses;
 
     // 2. Best Sellers

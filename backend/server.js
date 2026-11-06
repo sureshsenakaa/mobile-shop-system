@@ -51,7 +51,7 @@ app.use((req, res, next) => {
 const rateLimit = require('express-rate-limit');
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 300, // Limit each IP to 300 requests per `window` (here, per 1 minute)
+  max: 1500, // Limit each IP to 1,500 requests per minute (supports multiple busy shop counters simultaneously)
   message: { error: 'Too many requests from this IP, please try again after a minute' },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -126,6 +126,15 @@ sequelize.authenticate()
       await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "phone" VARCHAR(255);');
       await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "address" VARCHAR(255);');
       await sequelize.query('ALTER TABLE IF EXISTS "Shops" ADD COLUMN IF NOT EXISTS "ownerName" VARCHAR(255);');
+
+      // Auto-migrate CashRegisters table columns for shift management
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "shiftNumber" INTEGER DEFAULT 1;');
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "openedBy" INTEGER;');
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "openedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW();');
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "cashIn" DOUBLE PRECISION DEFAULT 0;');
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "cardIn" DOUBLE PRECISION DEFAULT 0;');
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "cashOut" DOUBLE PRECISION DEFAULT 0;');
+      await sequelize.query('ALTER TABLE IF EXISTS "CashRegisters" ADD COLUMN IF NOT EXISTS "currentBalance" DOUBLE PRECISION DEFAULT 0;');
     } catch (e) {
       console.log('Schema migration notice:', e.message);
     }

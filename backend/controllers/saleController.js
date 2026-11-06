@@ -163,13 +163,21 @@ exports.getSummary = async (req, res) => {
     const salesTotal = Number(salesAgg[0]?.getDataValue('totalSales') || 0);
 
     const expensesAgg = await Expense.findAll({
-      where: { date: { [Op.gte]: start, [Op.lt]: end }, shopId: req.shopId },
+      where: {
+        date: { [Op.gte]: start, [Op.lt]: end },
+        shopId: req.shopId,
+        category: { [Op.ne]: 'Customer Refund' }
+      },
       attributes: [[sequelize.fn('SUM', sequelize.col('amount')), 'totalExpenses']]
     });
     const expensesTotal = Number(expensesAgg[0]?.getDataValue('totalExpenses') || 0);
 
     const categoryBreakdown = await Expense.findAll({
-      where: { date: { [Op.gte]: start, [Op.lt]: end }, shopId: req.shopId },
+      where: {
+        date: { [Op.gte]: start, [Op.lt]: end },
+        shopId: req.shopId,
+        category: { [Op.ne]: 'Customer Refund' }
+      },
       attributes: [
         'category',
         [sequelize.fn('SUM', sequelize.col('amount')), 'total']

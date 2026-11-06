@@ -72,16 +72,57 @@ function injectShopFilter(req, res, next) {
         req._rlsTransaction = t;
 
         return new Promise((resolve, reject) => {
-          res.on('finish', () => {
-            if (res.statusCode >= 400) {
-              reject(new Error(`Rollback due to status code ${res.statusCode}`));
+          let isFinalized = false;
+
+          const finalize = (err) => {
+            if (isFinalized) return;
+            isFinalized = true;
+            clearTimeout(safetyTimeout);
+
+            // Rollback if an explicit error occurred or if a write operation failed with >= 400.
+            // Read-only GET requests (e.g. 404 Not Found) resolve cleanly without artificial rollback errors.
+            const shouldRollback = err || (req.method !== 'GET' && res.statusCode >= 400);
+            if (shouldRollback) {
+              reject(err || new Error(`Rollback due to status code ${res.statusCode}`));
             } else {
               resolve();
             }
-          });
+          };
+
+          // 1. Hook into response completion: Release DB connection immediately as soon as controller finishes,
+          // instead of keeping the connection captive during slow network client downloads!
+          const origJson = res.json;
+          res.json = function(...args) {
+            finalize();
+            return origJson.apply(this, args);
+          };
+
+          const origSend = res.send;
+          res.send = function(...args) {
+            finalize();
+            return origSend.apply(this, args);
+          };
+
+          const origEnd = res.end;
+          res.end = function(...args) {
+            finalize();
+            return origEnd.apply(this, args);
+          };
+
+          // 2. Network fallbacks
+          res.on('finish', () => finalize());
           res.on('close', () => {
-            reject(new Error('Client disconnected prematurely'));
+            if (!res.headersSent) {
+              finalize(new Error('Client disconnected prematurely'));
+            } else {
+              finalize();
+            }
           });
+
+          // 3. Safety timeout: never allow any DB transaction to stay open for more than 15s
+          const safetyTimeout = setTimeout(() => {
+            finalize(new Error('Database transaction timeout (15s limit reached)'));
+          }, 15000);
 
           // Proceed with routing
           next();

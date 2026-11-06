@@ -6,6 +6,12 @@ Sequelize.useCLS(namespace);
 const sequelize = new Sequelize(process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mobile-shop', {
   dialect: 'postgres',
   logging: false,
+  pool: {
+    max: 30,         // Maximum 30 concurrent database connections (up from 5)
+    min: 5,          // Minimum 5 ready connections in pool
+    acquire: 30000,  // Maximum time in ms that pool will try to get connection before throwing error
+    idle: 10000      // Maximum time in ms that a connection can be idle before being released
+  }
 });
 
 const commonVirtuals = {
@@ -247,10 +253,17 @@ const CashRegister = sequelize.define('CashRegister', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   ...commonVirtuals,
   date: { type: DataTypes.DATEONLY, allowNull: false },
+  shiftNumber: { type: DataTypes.INTEGER, defaultValue: 1 },
+  openedBy: { type: DataTypes.INTEGER },
+  openedAt: { type: DataTypes.DATE, defaultValue: Sequelize.NOW },
   openingBalance: { type: DataTypes.FLOAT, defaultValue: 0 },
   closingBalance: { type: DataTypes.FLOAT },
   expectedBalance: { type: DataTypes.FLOAT },
   difference: { type: DataTypes.FLOAT, defaultValue: 0 },
+  cashIn: { type: DataTypes.FLOAT, defaultValue: 0 },
+  cardIn: { type: DataTypes.FLOAT, defaultValue: 0 },
+  cashOut: { type: DataTypes.FLOAT, defaultValue: 0 },
+  currentBalance: { type: DataTypes.FLOAT, defaultValue: 0 },
   notes: { type: DataTypes.TEXT },
   status: { type: DataTypes.STRING, defaultValue: 'open' },
   closedBy: { type: DataTypes.INTEGER },
@@ -329,6 +342,8 @@ SubscriptionPayment.belongsTo(Shop, { foreignKey: 'shopId' });
 
 Shop.hasMany(CashRegister, { foreignKey: 'shopId' });
 CashRegister.belongsTo(Shop, { foreignKey: 'shopId' });
+CashRegister.belongsTo(User, { as: 'opener', foreignKey: 'openedBy' });
+CashRegister.belongsTo(User, { as: 'closer', foreignKey: 'closedBy' });
 
 Shop.hasMany(Quotation, { foreignKey: 'shopId' });
 Quotation.belongsTo(Shop, { foreignKey: 'shopId' });
