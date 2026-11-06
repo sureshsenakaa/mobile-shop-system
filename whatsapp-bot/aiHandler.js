@@ -16,7 +16,7 @@ function initGemini() {
         try {
             genAI = new GoogleGenerativeAI(apiKey);
             model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-3.5-flash-lite",
                 systemInstruction: SYSTEM_PROMPT,
                 generationConfig: {
                     temperature: 0.7,
