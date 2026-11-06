@@ -70,7 +70,19 @@ const Login = ({ onLogin }) => {
     return (
         <div className="login-container">
             <div className="login-card">
-                <div className="login-header">
+                <div className="login-header" style={{ textAlign: 'center' }}>
+                    <img 
+                        src="/mobile-zone-icon.jpg" 
+                        alt="Mobile Zone Logo" 
+                        style={{ 
+                            width: 72, 
+                            height: 72, 
+                            borderRadius: 16, 
+                            marginBottom: 12, 
+                            boxShadow: '0 6px 16px rgba(14, 165, 233, 0.25)',
+                            objectFit: 'cover'
+                        }} 
+                    />
                     <h1 className="login-title">MOBILE ZONE</h1>
                     <p className="login-subtitle">
                         {step === 'login' ? 'System Manager Login' : step === 'reset_password' ? 'Set New Password' : 'Two-Factor Authentication'}

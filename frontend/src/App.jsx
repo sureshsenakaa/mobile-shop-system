@@ -89,19 +89,15 @@ const App = () => {
         <div>
             <header className="app-header">
                 <div className="header-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {authUser.logoUrl && !isSuperAdmin && (
-                        <img 
-                            src={resolveMediaUrl(authUser.logoUrl)} 
-                            alt="Logo" 
-                            className="header-logo" 
-                            onError={(e) => {
-                                const rel = authUser.logoUrl.startsWith('/') ? authUser.logoUrl : `/${authUser.logoUrl}`;
-                                if (e.target.src !== window.location.origin + rel) {
-                                    e.target.src = rel;
-                                }
-                            }}
-                        />
-                    )}
+                    <img 
+                        src={authUser.logoUrl && !isSuperAdmin ? resolveMediaUrl(authUser.logoUrl) : '/mobile-zone-icon.jpg'} 
+                        alt="Logo" 
+                        className="header-logo" 
+                        style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover' }}
+                        onError={(e) => {
+                            e.target.src = '/mobile-zone-icon.jpg';
+                        }}
+                    />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <h1 className="app-title">
                             {isSuperAdmin ? 'MOBILE ZONE MANAGER' : (authUser.shopName || 'MY SHOP')}
