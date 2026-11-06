@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AuthContext } from './contexts/AuthContext';
 
@@ -45,6 +45,24 @@ const App = () => {
     const [refreshKey, setRefreshKey] = useState(0);
     const [latestSaleId, setLatestSaleId] = useState(null);
     const [selectedPartCategory, setSelectedPartCategory] = useState(null);
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setMoreMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Close dropdown when route changes
+    useEffect(() => {
+        setMoreMenuOpen(false);
+    }, [location.pathname]);
 
     // Update document title dynamically
     useEffect(() => {
@@ -106,36 +124,105 @@ const App = () => {
                     </div>
                 </div>
 
-                <div className="nav">
-                    {isSuperAdmin && (
+                <div className="nav-pill-group">
+                    {isSuperAdmin ? (
                         <>
-                            <button className={`nav-button purple ${location.pathname.includes('/shops') ? 'active' : ''}`} onClick={() => navigate('/shops')}>🏬 Shops</button>
-                            <button className={`nav-button green ${location.pathname.includes('/subscription-approvals') ? 'active' : ''}`} onClick={() => navigate('/subscription-approvals')}>💳 Subscriptions</button>
+                            <button className={`nav-pill ${location.pathname.includes('/shops') ? 'active' : ''}`} onClick={() => navigate('/shops')}>🏬 Shops</button>
+                            <button className={`nav-pill ${location.pathname.includes('/subscription-approvals') ? 'active' : ''}`} onClick={() => navigate('/subscription-approvals')}>💳 Subscriptions</button>
                         </>
-                    )}
-                    
-                    {!isSuperAdmin && (
+                    ) : (
                         <>
-                            <button className={`nav-button green ${location.pathname.includes('/sales') ? 'active' : ''}`} onClick={() => navigate('/sales')}>💰 Sales</button>
-                            <button className={`nav-button blue ${location.pathname.includes('/dashboard') || location.pathname.includes('/analytics') ? 'active' : ''}`} onClick={() => navigate('/dashboard')}>📊 Dashboard</button>
-                            <button className={`nav-button blue ${location.pathname.includes('/products') || location.pathname.includes('/purchase-orders') || location.pathname.includes('/returns') ? 'active' : ''}`} onClick={() => navigate('/products')}>📦 Stock</button>
-                            <button className={`nav-button orange ${(location.pathname.includes('/repairs') || location.pathname.includes('/parts') || location.pathname.includes('/part-categories')) ? 'active' : ''}`} onClick={() => navigate('/repairs')}>🔧 Repairs</button>
-                            <button className={`nav-button green ${location.pathname.includes('/customers') ? 'active' : ''}`} onClick={() => navigate('/customers')}>👥 CRM</button>
-                            <button className={`nav-button green ${location.pathname.includes('/cash-register') ? 'active' : ''}`} onClick={() => navigate('/cash-register')}>🏧 Register</button>
-                            <button className={`nav-button blue ${location.pathname.includes('/quotation') ? 'active' : ''}`} onClick={() => navigate('/quotations')}>📝 Quotes</button>
-                        </>
-                    )}
+                            {/* 4 Core Pillars */}
+                            <button 
+                                className={`nav-pill ${location.pathname.includes('/sales') || location.pathname === '/add-sale' ? 'active' : ''}`} 
+                                onClick={() => navigate('/sales')}
+                            >
+                                <span className="nav-icon">🛍️</span> Sales
+                            </button>
+                            <button 
+                                className={`nav-pill ${(location.pathname.includes('/products') || location.pathname === '/add-product') && !location.pathname.includes('/purchase-orders') ? 'active' : ''}`} 
+                                onClick={() => navigate('/products')}
+                            >
+                                <span className="nav-icon">📦</span> Stock & IMEI
+                            </button>
+                            <button 
+                                className={`nav-pill ${(location.pathname.includes('/repairs') || location.pathname.includes('/parts') || location.pathname.includes('/part-categories') || location.pathname === '/add-repair') ? 'active' : ''}`} 
+                                onClick={() => navigate('/repairs')}
+                            >
+                                <span className="nav-icon">🔧</span> Repairs
+                            </button>
+                            <button 
+                                className={`nav-pill ${location.pathname === '/dashboard' ? 'active' : ''}`} 
+                                onClick={() => navigate('/dashboard')}
+                            >
+                                <span className="nav-icon">📊</span> Dashboard
+                            </button>
 
-                    {isShopAdmin && (
-                        <>
-                            <button className={`nav-button purple ${location.pathname.includes('/suppliers') && !location.pathname.includes('stock') ? 'active' : ''}`} onClick={() => navigate('/suppliers')}>🚚 Supply</button>
-                            <button className={`nav-button purple ${location.pathname === '/purchase-orders' ? 'active' : ''}`} onClick={() => navigate('/purchase-orders')}>🛒 POs</button>
-                            <button className={`nav-button purple ${location.pathname === '/returns' ? 'active' : ''}`} onClick={() => navigate('/returns')}>🔙 Returns</button>
-                            <button className={`nav-button purple ${location.pathname === '/payroll' ? 'active' : ''}`} onClick={() => navigate('/payroll')}>💸 Payroll</button>
-                            <button className={`nav-button purple ${location.pathname === '/analytics' ? 'active' : ''}`} onClick={() => navigate('/analytics')}>📈 Analytics</button>
-                            <button className={`nav-button purple ${location.pathname.includes('/investors') ? 'active' : ''}`} onClick={() => navigate('/investors')}>💼 Investors</button>
-                            <button className={`nav-button orange ${location.pathname === '/staff' ? 'active' : ''}`} onClick={() => navigate('/staff')}>👥 Staff</button>
-                            <button className={`nav-button green ${location.pathname === '/billing' ? 'active' : ''}`} onClick={() => navigate('/billing')}>💳 Billing</button>
+                            {/* More Tools Dropdown */}
+                            <div className="nav-dropdown-wrapper" ref={dropdownRef}>
+                                <button 
+                                    className={`nav-pill nav-dropdown-btn ${[
+                                        '/customers', '/cash-register', '/quotation', '/quotations',
+                                        '/suppliers', '/purchase-orders', '/returns', '/payroll',
+                                        '/investors', '/staff', '/billing', '/analytics'
+                                    ].some(p => location.pathname.includes(p)) ? 'active-parent' : ''} ${moreMenuOpen ? 'open' : ''}`}
+                                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                                    type="button"
+                                    aria-haspopup="true"
+                                    aria-expanded={moreMenuOpen}
+                                >
+                                    <span className="nav-icon">⚡</span> More Tools <span className="dropdown-caret">{moreMenuOpen ? '▴' : '▾'}</span>
+                                </button>
+
+                                {moreMenuOpen && (
+                                    <div className="nav-dropdown-menu">
+                                        <div className="dropdown-section-title">POS Utilities</div>
+                                        <button className={`dropdown-item ${location.pathname.includes('/cash-register') ? 'active' : ''}`} onClick={() => { navigate('/cash-register'); setMoreMenuOpen(false); }}>
+                                            <span className="dropdown-icon">🏧</span> Cash Register
+                                        </button>
+                                        <button className={`dropdown-item ${location.pathname.includes('/quotation') ? 'active' : ''}`} onClick={() => { navigate('/quotations'); setMoreMenuOpen(false); }}>
+                                            <span className="dropdown-icon">📝</span> Quotations
+                                        </button>
+                                        <button className={`dropdown-item ${location.pathname.includes('/customers') ? 'active' : ''}`} onClick={() => { navigate('/customers'); setMoreMenuOpen(false); }}>
+                                            <span className="dropdown-icon">👥</span> Customer CRM
+                                        </button>
+
+                                        {isShopAdmin && (
+                                            <>
+                                                <div className="dropdown-divider" />
+                                                <div className="dropdown-section-title">Inventory & Supply</div>
+                                                <button className={`dropdown-item ${location.pathname.includes('/suppliers') && !location.pathname.includes('stock') ? 'active' : ''}`} onClick={() => { navigate('/suppliers'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">🚚</span> Suppliers
+                                                </button>
+                                                <button className={`dropdown-item ${location.pathname === '/purchase-orders' ? 'active' : ''}`} onClick={() => { navigate('/purchase-orders'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">🛒</span> Purchase Orders (POs)
+                                                </button>
+                                                <button className={`dropdown-item ${location.pathname === '/returns' ? 'active' : ''}`} onClick={() => { navigate('/returns'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">🔙</span> Returns / Warranty
+                                                </button>
+
+                                                <div className="dropdown-divider" />
+                                                <div className="dropdown-section-title">Management & Finance</div>
+                                                <button className={`dropdown-item ${location.pathname === '/analytics' ? 'active' : ''}`} onClick={() => { navigate('/analytics'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">📈</span> Analytics & Reports
+                                                </button>
+                                                <button className={`dropdown-item ${location.pathname === '/payroll' ? 'active' : ''}`} onClick={() => { navigate('/payroll'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">💸</span> Staff Payroll
+                                                </button>
+                                                <button className={`dropdown-item ${location.pathname.includes('/investors') ? 'active' : ''}`} onClick={() => { navigate('/investors'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">💼</span> Investor Accounts
+                                                </button>
+                                                <button className={`dropdown-item ${location.pathname === '/staff' ? 'active' : ''}`} onClick={() => { navigate('/staff'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">🛡️</span> Staff & Permissions
+                                                </button>
+                                                <button className={`dropdown-item ${location.pathname === '/billing' ? 'active' : ''}`} onClick={() => { navigate('/billing'); setMoreMenuOpen(false); }}>
+                                                    <span className="dropdown-icon">💳</span> System Subscription
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>
